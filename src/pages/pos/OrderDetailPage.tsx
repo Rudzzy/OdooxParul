@@ -1,36 +1,88 @@
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, CreditCard, Printer, Utensils, Clock, Receipt, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import api from "@/lib/api";
 
-// Mock Order Details
-const mockOrder = {
-  id: "o1",
-  orderNumber: "ORD-1001",
-  tableNumber: "3",
-  guests: 2,
-  waiter: "John Waiter",
-  createdTime: "12:30 PM",
-  status: "Payment Pending",
-  items: [
-    { id: "i1", name: "Cheese Pizza", quantity: 1, price: 450, status: "Served" },
-    { id: "i2", name: "Paneer Tikka", quantity: 2, price: 300, status: "Served" },
-    { id: "i3", name: "Mojito", quantity: 2, price: 200, status: "Served" },
-  ],
-  subtotal: 1450,
-  tax: 72.5,
-  discount: 0,
-  total: 1522.5
-};
+interface OrderDetail {
+  id: string;
+  orderNumber: string;
+  tableNumber: string;
+  guests: number;
+  waiter: string;
+  createdTime: string;
+  status: string;
+  items: { id: string; name: string; quantity: number; price: number; status: string }[];
+  subtotal: number;
+  tax: number;
+  discount: number;
+  total: number;
+}
 
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // In a real app, we'd fetch the order using the 'id'
-  const order = mockOrder;
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const res = await api.get(`/orders/${id}`);
+        const o = res.data;
+        // Map backend order to local shape
+        const items = (o.items || []).map((item: any, idx: number) => ({
+          id: item.id || `i${idx}`,
+          name: item.productName || item.name || "Item",
+          quantity: item.quantity || 1,
+          price: item.price || 0,
+          status: item.status || "Served",
+        }));
+        const subtotal = items.reduce((acc: number, item: any) => acc + item.price * item.quantity, 0);
+        const tax = subtotal * 0.05;
+        setOrder({
+          id: o.id,
+          orderNumber: `ORD-${o.id?.substring(0, 4)?.toUpperCase() || "0000"}`,
+          tableNumber: o.tableId || "N/A",
+          guests: o.guests || 0,
+          waiter: o.waiterName || "Staff",
+          createdTime: o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
+          status: o.status || "Pending",
+          items,
+          subtotal,
+          tax,
+          discount: o.discount || 0,
+          total: subtotal + tax - (o.discount || 0),
+        });
+      } catch {
+        // If order not found, show fallback
+        setOrder(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrder();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full text-slate-500">
+        Loading order...
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-slate-500">
+        <p className="text-lg font-medium">Order not found</p>
+        <Button variant="link" onClick={() => navigate(-1)}>Go back</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full gap-6 max-w-4xl mx-auto w-full">

@@ -7,28 +7,27 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import api from "@/lib/api";
 
-// Mock Data
-const categories = ["All", "Starters", "Main Course", "Pizza", "Burger", "Pasta", "Drinks", "Desserts"];
+interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  isVeg: boolean;
+  categoryId: string;
+}
 
-const mockMenuItems = [
-  { id: "m1", name: "Cheese Pizza", price: 450, category: "Pizza", isVeg: true, image: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=500&auto=format&fit=crop&q=60" },
-  { id: "m2", name: "Cheese Burger", price: 270, category: "Burger", isVeg: false, image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60" },
-  { id: "m3", name: "Paneer Tikka", price: 300, category: "Starters", isVeg: true, image: "https://images.unsplash.com/photo-1567188040759-bf8d7fc34ed5?w=500&auto=format&fit=crop&q=60" },
-  { id: "m4", name: "Arrabiata Pasta", price: 380, category: "Pasta", isVeg: true, image: "https://images.unsplash.com/photo-1621996311239-5a1887e2b10a?w=500&auto=format&fit=crop&q=60" },
-  { id: "m5", name: "Mojito", price: 200, category: "Drinks", isVeg: true, image: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=500&auto=format&fit=crop&q=60" },
-  { id: "m6", name: "Chocolate Brownie", price: 250, category: "Desserts", isVeg: true, image: "https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=500&auto=format&fit=crop&q=60" },
-];
-
-const mockCustomers = [
-  { id: "c1", name: "Rahul Kumar", email: "rahul@example.com", phone: "9876543210" },
-  { id: "c2", name: "Priya Sharma", email: "priya@example.com", phone: "8765432109" },
-  { id: "c3", name: "Amit Singh", email: "amit@example.com", phone: "7654321098" },
-];
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
 
 interface OrderItem {
   id: string;
-  menuItem: typeof mockMenuItems[0];
+  menuItem: MenuItem;
   quantity: number;
 }
 
@@ -42,6 +41,8 @@ export default function OrderViewPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<string[]>(["All"]);
 
   // Right Panel State (Payment)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
@@ -50,7 +51,7 @@ export default function OrderViewPage() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   // Dialog States
-  const [customers, setCustomers] = useState(mockCustomers);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [isCouponOpen, setIsCouponOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   
@@ -60,21 +61,54 @@ export default function OrderViewPage() {
   const [isCustomerOpen, setIsCustomerOpen] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string; email: string; phone: string } | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
 
+  // Fetch products and categories from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [productsRes, categoriesRes] = await Promise.all([
+          api.get("/products"),
+          api.get("/categories"),
+        ]);
+        // Build category name map
+        const catMap: Record<string, string> = {};
+        categoriesRes.data.forEach((c: any) => {
+          catMap[c.id] = c.name;
+        });
+        // Map products to menu items
+        const items: MenuItem[] = productsRes.data.map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          price: p.price,
+          category: catMap[p.categoryId] || "Other",
+          isVeg: p.isVeg,
+          categoryId: p.categoryId,
+        }));
+        setMenuItems(items);
+        // Build categories list
+        const catNames = ["All", ...Object.values(catMap)];
+        setCategories(catNames);
+      } catch {
+        // Silently fail — show empty menu
+      }
+    };
+    fetchData();
+  }, []);
+
   // Filter Customers
-  const filteredCustomers = customers.filter(c => 
+  const filteredCustomers = customers.filter((c: Customer) => 
     c.name.toLowerCase().includes(customerSearch.toLowerCase()) || 
     c.email.toLowerCase().includes(customerSearch.toLowerCase()) || 
     c.phone.includes(customerSearch)
   );
 
   // Filter Items
-  const filteredItems = mockMenuItems.filter(item => {
+  const filteredItems = menuItems.filter(item => {
     const matchesCategory = activeCategory === "All" || item.category === activeCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -87,7 +121,7 @@ export default function OrderViewPage() {
   const grandTotal = subtotal + tax - discount;
 
   // Cart Functions
-  const handleAddItem = (menuItem: typeof mockMenuItems[0]) => {
+  const handleAddItem = (menuItem: MenuItem) => {
     setOrderItems(prev => {
       const existing = prev.find(item => item.menuItem.id === menuItem.id);
       if (existing) {
