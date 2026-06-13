@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Users, IndianRupee } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import api from "@/lib/api";
+import { usePosStore } from "@/store/posStore";
 
 type TableStatus = "Available" | "Occupied" | "Unavailable";
 
@@ -41,7 +42,9 @@ export default function FloorSelectPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All Tables");
-  const [tables, setTables] = useState<Table[]>([]);
+  const [apiTables, setApiTables] = useState<any[]>([]);
+  const [openOrdersMap, setOpenOrdersMap] = useState<Record<string, any>>({});
+  const { sessions } = usePosStore();
 
   useEffect(() => {
     const fetchTablesAndOrders = async () => {
@@ -51,33 +54,53 @@ export default function FloorSelectPage() {
           api.get("/orders").catch(() => ({ data: [] }))
         ]);
 
-        const openOrdersMap: Record<string, any> = {};
+        const ordersMap: Record<string, any> = {};
         if (ordersRes.data) {
           ordersRes.data.forEach((o: any) => {
             if (o.status === "open" && o.tableId) {
-              openOrdersMap[o.tableId] = o;
+              ordersMap[o.tableId] = o;
             }
           });
         }
-
-        const backendTables = tablesRes.data.map((t: any) => {
-          const openOrder = openOrdersMap[t.id];
-          return {
-            id: t.id,
-            number: t.tableNumber.replace(/^T/i, ""),
-            status: openOrder ? "Occupied" as TableStatus : (t.isActive ? "Available" as TableStatus : "Unavailable" as TableStatus),
-            capacity: t.capacity || 0,
-            orderAmount: openOrder ? (openOrder.total || 0) : 0,
-          };
-        });
-        setTables(backendTables);
+        setOpenOrdersMap(ordersMap);
+        setApiTables(tablesRes.data);
       } catch {
         // If API fails, show empty state
-        setTables([]);
+        setApiTables([]);
       }
     };
     fetchTablesAndOrders();
   }, []);
+
+  const tables = useMemo<Table[]>(() => {
+    return apiTables.map((t: any) => {
+      const openOrder = openOrdersMap[t.id];
+      const session = sessions[t.id];
+      
+      let status: TableStatus = t.isActive ? "Available" : "Unavailable";
+      let orderAmount = 0;
+      let customerName = undefined;
+
+      if (openOrder) {
+        status = "Occupied";
+        orderAmount = openOrder.total || 0;
+      } else if (session && session.status === "Occupied") {
+        status = "Occupied";
+        const subtotal = session.orderItems.reduce((acc, item) => acc + (item.menuItem.price * item.quantity), 0);
+        orderAmount = Math.round(subtotal * 1.05); // including 5% tax
+        customerName = session.customer?.name;
+      }
+
+      return {
+        id: t.id,
+        number: t.tableNumber.replace(/^T/i, ""),
+        status,
+        capacity: t.capacity || 0,
+        orderAmount,
+        customerName,
+      };
+    });
+  }, [apiTables, openOrdersMap, sessions]);
 
   const filteredTables = tables.filter((table) => {
     // Search matching

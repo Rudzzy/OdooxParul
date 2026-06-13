@@ -48,12 +48,19 @@ def create_kds_order(
     if not payload.items:
         raise HTTPException(status_code=400, detail="Cannot create empty order")
 
-    # Check for an active ticket for this table
+    # Check for an active ticket for this order or table
     kds_order = None
-    if payload.tableId:
+    if payload.orderId:
+        kds_order = db.query(KDSOrder).filter(
+            KDSOrder.orderId == payload.orderId,
+            KDSOrder.stage != KDSStage.completed,
+            KDSOrder.stage != KDSStage.cancelled
+        ).first()
+    elif payload.tableId:
         kds_order = db.query(KDSOrder).filter(
             KDSOrder.tableId == payload.tableId,
-            KDSOrder.stage != KDSStage.completed
+            KDSOrder.stage != KDSStage.completed,
+            KDSOrder.stage != KDSStage.cancelled
         ).first()
 
     if kds_order:
@@ -72,8 +79,8 @@ def create_kds_order(
                     kdsOrderId=kds_order.id,
                     name=item_data.name,
                     quantity=item_data.quantity,
-                    prepared=False,
                     categoryId=item_data.categoryId,
+                    notes=item_data.notes,
                 )
                 kds_order.items.append(item)
     else:
@@ -88,6 +95,7 @@ def create_kds_order(
             stage=KDSStage.to_cook,
             timestamp=datetime.utcnow().isoformat(),
             tableId=payload.tableId,
+            orderId=payload.orderId,
         )
 
         for item_data in payload.items:
@@ -96,8 +104,8 @@ def create_kds_order(
                 kdsOrderId=kds_order.id,
                 name=item_data.name,
                 quantity=item_data.quantity,
-                prepared=False,
                 categoryId=item_data.categoryId,
+                notes=item_data.notes,
             )
             kds_order.items.append(item)
 
@@ -130,6 +138,32 @@ def advance_kds_stage(
     db.commit()
     db.refresh(order)
     return order
+
+
+# ─── PATCH /api/kds/{id}/cancel — Cancel an order's stage ────────────────────
+
+@router.patch("/{order_id}/cancel", response_model=KDSOrderOut)
+def cancel_kds_stage(
+    order_id: str,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    # This expects POS order id! Find associated KDS orders and cancel them.
+    # Actually wait! The route param says {order_id}, let's find all KDS orders by POS orderId.
+    kds_orders = db.query(KDSOrder).filter(KDSOrder.orderId == order_id).all()
+    if not kds_orders:
+        raise HTTPException(status_code=404, detail="No associated KDS orders found")
+
+    for order in kds_orders:
+        if order.stage not in [KDSStage.completed, KDSStage.cancelled]:
+            order.stage = KDSStage.cancelled
+
+    db.commit()
+    for order in kds_orders:
+        db.refresh(order)
+    
+    # Return the first one as a convention, though standard UI won't use the return value
+    return kds_orders[0]
 
 
 # ─── PATCH /api/kds/{id}/items/{itemId}/toggle — Toggle item prepared ────────
