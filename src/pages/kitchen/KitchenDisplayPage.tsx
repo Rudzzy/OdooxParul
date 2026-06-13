@@ -142,7 +142,7 @@ export default function KitchenDisplayPage() {
                   </div>
                 )}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </ScrollArea>
       </div>
@@ -230,54 +230,6 @@ export default function KitchenDisplayPage() {
                       ))}
                     </ul>
                   </div>
-                ) : (
-                  filteredOrders.map(order => (
-                    <div 
-                      key={order.id} 
-                      className="bg-slate-900 rounded-xl border border-slate-800 shadow-xl overflow-hidden flex flex-col transition-all duration-300 animate-in fade-in zoom-in-95"
-                    >
-                      {/* Card Header */}
-                      <div className={`p-4 border-b flex justify-between items-center ${getStageColor(order.stage)}`}>
-                        <div>
-                          <h3 className="text-2xl font-bold tracking-tight">#{order.id}</h3>
-                          <p className="text-xs font-medium opacity-80 mt-0.5">{order.customerName || "Walk-in"}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex items-center justify-end text-sm font-bold uppercase tracking-wider mb-1">
-                            {getStageIcon(order.stage)}
-                            {order.stage}
-                          </div>
-                          <div className="text-xs font-medium opacity-70">
-                            {formatDistanceToNow(new Date(order.timestamp), { addSuffix: true })}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Card Body / Items */}
-                      <div className="p-2 flex-1">
-                        <ul className="space-y-1">
-                          {order.items.map(item => (
-                            <li 
-                              key={item.id}
-                              onClick={() => toggleItemPrepared(order.id, item.id)}
-                              className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-300
-                                ${item.prepared 
-                                  ? "bg-slate-950/50 text-slate-500 opacity-60" 
-                                  : "bg-slate-800/40 text-slate-100 hover:bg-slate-800/80"
-                                }
-                              `}
-                            >
-                              <div className={`flex items-center gap-3 text-lg font-medium ${item.prepared ? "line-through decoration-slate-500 decoration-2" : ""}`}>
-                                <span className="w-8 h-8 rounded bg-slate-950 flex items-center justify-center text-sm text-orange-400 border border-slate-800 font-bold">
-                                  {item.quantity}x
-                                </span>
-                                {item.name}
-                              </div>
-                              {item.prepared && <Check className="w-5 h-5 text-emerald-500 mr-2 shrink-0" />}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
 
                   {/* Card Footer / Action */}
                   {order.stage !== "Completed" && (
@@ -298,12 +250,12 @@ export default function KitchenDisplayPage() {
                         )}
                       </Button>
                     </div>
-                  ))
-                )}
-              </div>
-            </ScrollArea>
+                  )}
+                </div>
+              ))
+            )}
           </div>
-        </div>
+        </ScrollArea>
       </div>
     </div>
   );
