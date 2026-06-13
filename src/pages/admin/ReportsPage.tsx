@@ -7,14 +7,15 @@ import {
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector, Brush } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "react-hot-toast";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -25,11 +26,11 @@ const SESSIONS = ["All Sessions", "Breakfast", "Lunch", "Dinner", "Night Shift"]
 const PRODUCTS = ["Pizza", "Burger", "Drink", "Appetizer", "Dessert"];
 
 const CATEGORY_COLORS = {
-  'Pizza': '#8b4513',
-  'Burger': '#d2691e',
-  'Drink': '#4682b4',
-  'Appetizer': '#228b22',
-  'Dessert': '#2f4f4f'
+  'Pizza': '#e28743',
+  'Burger': '#eab676',
+  'Drink': '#76b5c5',
+  'Appetizer': '#abdbe3',
+  'Dessert': '#eeeee4'
 };
 
 const generateMockOrders = () => {
@@ -195,7 +196,7 @@ export default function ReportsPage() {
       name: cat,
       revenue: categoryStats[cat].revenue,
       qty: categoryStats[cat].qty,
-      color: CATEGORY_COLORS[cat as keyof typeof CATEGORY_COLORS] || '#888'
+      color: CATEGORY_COLORS[cat as keyof typeof CATEGORY_COLORS] || '#cbd5e1'
     })).sort((a, b) => b.revenue - a.revenue);
 
     const topProductsFormatted = Object.keys(productStats).map(prod => ({
@@ -220,7 +221,7 @@ export default function ReportsPage() {
   
   const handleExport = (type: 'pdf' | 'xls') => {
     toast.success(`Exporting report as ${type.toUpperCase()}...`, {
-      description: "Your download will begin shortly."
+      icon: "📥"
     });
   };
 
@@ -247,90 +248,63 @@ export default function ReportsPage() {
   const paginatedOrders = searchedOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-[#111111] text-[#e0e0e0] p-4 md:p-6 font-sans">
+    <div className="p-6 space-y-6">
       
-      {/* ----------------- TOP NAVIGATION BAR ----------------- */}
-      <div className="sticky top-0 z-40 flex items-center justify-between border border-[#333] rounded-xl p-3 mb-6 bg-[#1a1a1a]/95 backdrop-blur shadow-lg">
-        <div className="flex items-center gap-4 md:gap-6">
-          <div className="bg-[#b34036] text-black font-bold text-lg md:text-xl px-4 md:px-6 py-2 rounded-lg tracking-wider shadow-inner">
-            Logo
-          </div>
-          <h1 className="text-xl md:text-3xl font-semibold tracking-wide hidden sm:block">Reports</h1>
-          
-          <div className="flex items-center gap-3 md:gap-5 ml-2 md:ml-6 text-[#a0a0a0]">
-            <Button variant="ghost" size="icon" className="hover:bg-[#333] hover:text-white rounded-full">
-              <LayoutDashboard className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" className="hover:bg-[#333] hover:text-white rounded-full">
-              <Printer className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 md:gap-4">
-          <Button variant="outline" className="hidden md:flex border-[#444] bg-[#222] hover:bg-[#333] text-white">
-            <UserCircle2 className="h-5 w-5 mr-2 text-[#a0a0a0]" />
-            Admin Profile
-          </Button>
-          <Button variant="outline" size="icon" className="border-[#444] bg-[#222] hover:bg-[#333] text-white">
-            <Menu className="h-5 w-5 text-[#a0a0a0]" />
-          </Button>
+      {/* ----------------- HEADER ----------------- */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+          <p className="text-muted-foreground">
+            Analyze your sales, popular items, and staff performance.
+          </p>
         </div>
       </div>
 
-      <div className="border border-[#333] rounded-xl p-4 md:p-6 bg-[#1a1a1a] shadow-xl">
+      <div className="bg-white rounded-md border shadow-sm p-4 md:p-6 space-y-8">
         
         {/* ----------------- ADVANCED FILTERS BAR ----------------- */}
-        <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between border-b border-[#333] pb-4 mb-8 gap-4">
+        <div className="flex flex-col xl:flex-row items-start xl:items-end justify-between border-b pb-4 gap-4">
           
           <div className="flex flex-wrap items-center gap-3 md:gap-6 text-sm">
             
             {/* Start Date Picker */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="border-[#444] bg-[#222] hover:bg-[#333] text-white flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-blue-400" />
+                <Button variant="outline" className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-blue-500" />
                   {dateRange.from ? format(dateRange.from, "LLL dd, y") : <span>Start Date</span>}
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-[#1e1e1e] border-[#333] text-white shadow-2xl" align="start">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={dateRange.from}
                   onSelect={(date) => setDateRange({ ...dateRange, from: date || undefined })}
                   initialFocus
                   className="p-3"
-                  classNames={{
-                    day_selected: "bg-blue-600 text-white hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white",
-                    day_today: "bg-slate-800 text-white",
-                  }}
                 />
               </PopoverContent>
             </Popover>
 
-            <span className="text-slate-400 font-medium px-2">to</span>
+            <span className="text-slate-500 font-medium px-2">to</span>
 
             {/* End Date Picker */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="border-[#444] bg-[#222] hover:bg-[#333] text-white flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4 text-blue-400" />
+                <Button variant="outline" className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-blue-500" />
                   {dateRange.to ? format(dateRange.to, "LLL dd, y") : <span>End Date</span>}
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-[#1e1e1e] border-[#333] text-white shadow-2xl" align="start">
+              <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={dateRange.to}
                   onSelect={(date) => setDateRange({ ...dateRange, to: date || undefined })}
                   initialFocus
                   className="p-3"
-                  classNames={{
-                    day_selected: "bg-blue-600 text-white hover:bg-blue-600 hover:text-white focus:bg-blue-600 focus:text-white",
-                    day_today: "bg-slate-800 text-white",
-                  }}
                 />
               </PopoverContent>
             </Popover>
@@ -338,17 +312,17 @@ export default function ReportsPage() {
             {/* User Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="border-[#444] bg-[#222] hover:bg-[#333] text-white flex items-center gap-2">
-                  <UserCircle2 className="h-4 w-4 text-green-400" />
+                <Button variant="outline" className="flex items-center gap-2">
+                  <UserCircle2 className="h-4 w-4 text-green-500" />
                   {selectedUser}
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48 bg-[#1e1e1e] border-[#333] text-white">
+              <DropdownMenuContent className="w-48">
                 <DropdownMenuLabel>Filter by User</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-[#333]" />
+                <DropdownMenuSeparator />
                 {USERS.map(user => (
-                  <DropdownMenuItem key={user} onClick={() => setSelectedUser(user)} className="cursor-pointer hover:bg-[#333] focus:bg-[#333] focus:text-white">
+                  <DropdownMenuItem key={user} onClick={() => setSelectedUser(user)} className="cursor-pointer">
                     {user} {selectedUser === user && <Check className="ml-auto h-4 w-4 text-blue-500"/>}
                   </DropdownMenuItem>
                 ))}
@@ -358,17 +332,17 @@ export default function ReportsPage() {
             {/* Session Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="border-[#444] bg-[#222] hover:bg-[#333] text-white flex items-center gap-2">
-                  <LayoutDashboard className="h-4 w-4 text-orange-400" />
+                <Button variant="outline" className="flex items-center gap-2">
+                  <LayoutDashboard className="h-4 w-4 text-orange-500" />
                   {selectedSession}
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48 bg-[#1e1e1e] border-[#333] text-white">
+              <DropdownMenuContent className="w-48">
                 <DropdownMenuLabel>Filter by Session</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-[#333]" />
+                <DropdownMenuSeparator />
                 {SESSIONS.map(session => (
-                  <DropdownMenuItem key={session} onClick={() => setSelectedSession(session)} className="cursor-pointer hover:bg-[#333] focus:bg-[#333] focus:text-white">
+                  <DropdownMenuItem key={session} onClick={() => setSelectedSession(session)} className="cursor-pointer">
                     {session} {selectedSession === session && <Check className="ml-auto h-4 w-4 text-blue-500"/>}
                   </DropdownMenuItem>
                 ))}
@@ -378,17 +352,17 @@ export default function ReportsPage() {
             {/* Product Filter */}
             <Popover open={isProductFilterOpen} onOpenChange={setIsProductFilterOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="border-[#444] bg-[#222] hover:bg-[#333] text-white flex items-center gap-2">
-                  <Utensils className="h-4 w-4 text-pink-400" />
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Utensils className="h-4 w-4 text-pink-500" />
                   Products ({selectedProducts.length})
                   <ChevronDown className="h-4 w-4 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-56 p-2 bg-[#1e1e1e] border-[#333] text-white">
+              <PopoverContent className="w-56 p-2">
                 <div className="space-y-2">
-                  <h4 className="font-medium text-sm border-b border-[#333] pb-2">Filter Categories</h4>
+                  <h4 className="font-medium text-sm border-b pb-2">Filter Categories</h4>
                   {PRODUCTS.map(prod => (
-                    <div key={prod} className="flex items-center space-x-2 cursor-pointer hover:bg-[#333] p-1 rounded"
+                    <div key={prod} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded"
                          onClick={() => {
                            if (selectedProducts.includes(prod)) {
                              setSelectedProducts(selectedProducts.filter(p => p !== prod));
@@ -396,15 +370,13 @@ export default function ReportsPage() {
                              setSelectedProducts([...selectedProducts, prod]);
                            }
                          }}>
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center ${selectedProducts.includes(prod) ? 'bg-blue-600 border-blue-600' : 'border-slate-500'}`}>
-                        {selectedProducts.includes(prod) && <Check className="h-3 w-3 text-white" />}
-                      </div>
+                      <Checkbox checked={selectedProducts.includes(prod)} />
                       <span className="text-sm">{prod}</span>
                     </div>
                   ))}
-                  <div className="pt-2 border-t border-[#333] flex justify-between">
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedProducts(PRODUCTS)} className="text-xs h-7 hover:bg-[#333]">Select All</Button>
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedProducts([])} className="text-xs h-7 hover:bg-[#333] text-red-400">Clear</Button>
+                  <div className="pt-2 border-t flex justify-between">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedProducts(PRODUCTS)} className="text-xs h-7">Select All</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedProducts([])} className="text-xs h-7 text-red-500">Clear</Button>
                   </div>
                 </div>
               </PopoverContent>
@@ -415,17 +387,17 @@ export default function ReportsPage() {
           {/* Export Actions */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="bg-[#b34036] hover:bg-[#8c322a] text-white shadow-lg flex items-center gap-2 w-full xl:w-auto mt-4 xl:mt-0">
+              <Button className="flex items-center gap-2 w-full xl:w-auto mt-4 xl:mt-0">
                 <Download className="h-4 w-4" />
                 Export Report
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48 bg-[#1e1e1e] border-[#333] text-white" align="end">
-              <DropdownMenuItem onClick={() => handleExport('pdf')} className="cursor-pointer hover:bg-[#333] focus:bg-[#333] focus:text-white gap-2">
-                <FileText className="h-4 w-4 text-red-400" /> Export as PDF
+            <DropdownMenuContent className="w-48" align="end">
+              <DropdownMenuItem onClick={() => handleExport('pdf')} className="cursor-pointer gap-2">
+                <FileText className="h-4 w-4 text-red-500" /> Export as PDF
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('xls')} className="cursor-pointer hover:bg-[#333] focus:bg-[#333] focus:text-white gap-2">
-                <FileSpreadsheet className="h-4 w-4 text-green-400" /> Export as Excel
+              <DropdownMenuItem onClick={() => handleExport('xls')} className="cursor-pointer gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-green-500" /> Export as Excel
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -433,7 +405,7 @@ export default function ReportsPage() {
         </div>
 
         {/* ----------------- KPI SUMMARY CARDS ----------------- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { title: "Total Orders", value: kpis.orders, prefix: "", suffix: "", trend: 12.5, icon: LayoutDashboard },
             { title: "Total Revenue", value: kpis.revenue, prefix: "₹", suffix: "", trend: 8.2, icon: Banknote },
@@ -444,35 +416,35 @@ export default function ReportsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="border border-[#333] p-5 rounded-xl bg-gradient-to-br from-[#1c1c1c] to-[#111] shadow-lg relative overflow-hidden"
+              className="border p-5 rounded-xl bg-white shadow-sm relative overflow-hidden"
             >
-              <div className="absolute top-0 right-0 p-4 opacity-10">
+              <div className="absolute top-0 right-0 p-4 opacity-[0.03]">
                 <kpi.icon className="w-16 h-16" />
               </div>
-              <div className="text-[#a0a0a0] text-sm font-medium uppercase tracking-wider mb-2">{kpi.title}</div>
+              <div className="text-slate-500 text-sm font-medium uppercase tracking-wider mb-2">{kpi.title}</div>
               <motion.div 
                 key={kpi.value} // re-animates when value changes
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="text-4xl md:text-5xl font-light mb-4 text-white"
+                className="text-4xl md:text-5xl font-light mb-4 text-slate-800"
               >
                 {kpi.prefix}{kpi.value.toLocaleString(undefined, {maximumFractionDigits: 2})}{kpi.suffix}
               </motion.div>
-              <div className={`text-sm flex items-center gap-1 font-medium ${kpi.trend >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+              <div className={`text-sm flex items-center gap-1 font-medium ${kpi.trend >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {kpi.trend >= 0 ? <ArrowUpCircle className="h-4 w-4" /> : <ArrowDownCircle className="h-4 w-4" />} 
                 {Math.abs(kpi.trend)}% 
-                <span className="text-[#666] font-normal ml-1">vs previous period</span>
+                <span className="text-slate-500 font-normal ml-1">vs previous period</span>
               </div>
             </motion.div>
           ))}
         </div>
 
         {/* ----------------- CHARTS ROW ----------------- */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           
           {/* Sales Chart (Takes 2 columns on desktop) */}
-          <div className="xl:col-span-2 border border-[#333] rounded-xl p-4 bg-[#141414] shadow-inner">
-            <h3 className="text-[#d0d0d0] font-medium text-lg mb-4 flex items-center gap-2">
+          <div className="xl:col-span-2 border rounded-xl p-4 bg-slate-50/50">
+            <h3 className="text-slate-800 font-medium text-lg mb-4 flex items-center gap-2">
               <span className="w-2 h-6 bg-blue-500 rounded-sm inline-block"></span>
               Sales Analytics
             </h3>
@@ -486,16 +458,16 @@ export default function ReportsPage() {
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
-                    <XAxis dataKey="date" stroke="#666" tick={{ fill: '#888', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis stroke="#666" tick={{ fill: '#888', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="date" stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val}`} />
                     <RechartsTooltip 
-                      contentStyle={{ backgroundColor: '#1e1e1e', borderColor: '#333', color: '#fff', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)' }} 
+                      contentStyle={{ backgroundColor: '#fff', borderColor: '#e2e8f0', color: '#0f172a', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} 
                       itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
                     />
                     <Area type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
                     {/* Brush for zooming */}
-                    <Brush dataKey="date" height={30} stroke="#444" fill="#111" tickFormatter={() => ''} />
+                    <Brush dataKey="date" height={30} stroke="#cbd5e1" fill="#f8fafc" tickFormatter={() => ''} />
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (
@@ -505,8 +477,8 @@ export default function ReportsPage() {
           </div>
 
           {/* Product Distribution Chart */}
-          <div className="border border-[#333] rounded-xl p-4 bg-[#141414] shadow-inner flex flex-col">
-            <h3 className="text-[#d0d0d0] font-medium text-lg mb-4 flex items-center gap-2">
+          <div className="border rounded-xl p-4 bg-slate-50/50 flex flex-col">
+            <h3 className="text-slate-800 font-medium text-lg mb-4 flex items-center gap-2">
               <span className="w-2 h-6 bg-orange-500 rounded-sm inline-block"></span>
               Product Distribution
             </h3>
@@ -535,7 +507,7 @@ export default function ReportsPage() {
                     </Pie>
                     <RechartsTooltip 
                       formatter={(value: number) => `₹${value.toLocaleString()}`}
-                      contentStyle={{ backgroundColor: '#1e1e1e', borderColor: '#333', color: '#fff', borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: '#fff', borderColor: '#e2e8f0', color: '#0f172a', borderRadius: '8px' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -544,15 +516,15 @@ export default function ReportsPage() {
               )}
               
               {/* Interactive Legend */}
-              <div className="mt-auto grid grid-cols-2 gap-2 text-xs pt-4 border-t border-[#333]">
+              <div className="mt-auto grid grid-cols-2 gap-2 text-xs pt-4 border-t">
                 {topCategoriesData.map(cat => (
                   <div 
                     key={cat.name} 
-                    className={`flex items-center gap-2 cursor-pointer p-1.5 rounded transition-colors ${hiddenCategories.has(cat.name) ? 'opacity-40 hover:opacity-70' : 'hover:bg-[#222]'}`}
+                    className={`flex items-center gap-2 cursor-pointer p-1.5 rounded transition-colors ${hiddenCategories.has(cat.name) ? 'opacity-40 hover:opacity-70' : 'hover:bg-slate-100'}`}
                     onClick={() => toggleCategoryVisibility(cat.name)}
                   >
                     <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                    <span className="truncate text-white font-medium">{cat.name}</span>
+                    <span className="truncate text-slate-700 font-medium">{cat.name}</span>
                   </div>
                 ))}
               </div>
@@ -561,17 +533,17 @@ export default function ReportsPage() {
         </div>
 
         {/* ----------------- TOP ORDERS TABLE ----------------- */}
-        <div className="mb-10 border border-[#333] rounded-xl bg-[#141414] overflow-hidden shadow-inner">
-          <div className="p-4 border-b border-[#333] flex flex-col sm:flex-row justify-between items-center gap-4">
-            <h3 className="text-[#4caf50] text-lg font-semibold flex items-center gap-2">
-              <span className="w-2 h-6 bg-[#4caf50] rounded-sm inline-block"></span>
+        <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+          <div className="p-4 border-b flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h3 className="text-green-600 text-lg font-semibold flex items-center gap-2">
+              <span className="w-2 h-6 bg-green-500 rounded-sm inline-block"></span>
               Top Orders
             </h3>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input 
                 placeholder="Search orders..." 
-                className="pl-9 bg-[#222] border-[#444] text-white"
+                className="pl-9 bg-slate-50"
                 value={orderSearchQuery}
                 onChange={(e) => {
                   setOrderSearchQuery(e.target.value);
@@ -583,7 +555,7 @@ export default function ReportsPage() {
           
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-[#1a1a1a] text-slate-400 border-b border-[#333]">
+              <thead className="text-xs uppercase bg-slate-50 text-slate-500 border-b">
                 <tr>
                   <th className="px-4 py-3 font-medium">Order ID</th>
                   <th className="px-4 py-3 font-medium">Date</th>
@@ -598,18 +570,18 @@ export default function ReportsPage() {
                 {paginatedOrders.length > 0 ? paginatedOrders.map((order, idx) => (
                   <tr 
                     key={order.id} 
-                    className={`border-b border-[#222] hover:bg-[#1e1e1e] cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-[#141414]' : 'bg-[#181818]'}`}
+                    className={`border-b hover:bg-slate-50 cursor-pointer transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}
                     onClick={() => setSelectedOrder(order)}
                   >
-                    <td className="px-4 py-3 font-medium text-blue-400">{order.id}</td>
-                    <td className="px-4 py-3 text-slate-300">{format(order.date, 'MMM dd, yyyy HH:mm')}</td>
-                    <td className="px-4 py-3 text-slate-300">
-                      <span className="bg-[#222] border border-[#333] px-2 py-1 rounded text-xs">{order.session}</span>
+                    <td className="px-4 py-3 font-medium text-blue-600">{order.id}</td>
+                    <td className="px-4 py-3 text-slate-600">{format(order.date, 'MMM dd, yyyy HH:mm')}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      <span className="bg-slate-100 border px-2 py-1 rounded text-xs">{order.session}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{order.pos}</td>
-                    <td className="px-4 py-3 text-slate-200">{order.customer}</td>
-                    <td className="px-4 py-3 text-slate-400">{order.employee}</td>
-                    <td className="px-4 py-3 font-bold text-white text-right">₹{order.total.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-slate-600">{order.pos}</td>
+                    <td className="px-4 py-3 text-slate-700">{order.customer}</td>
+                    <td className="px-4 py-3 text-slate-600">{order.employee}</td>
+                    <td className="px-4 py-3 font-bold text-slate-900 text-right">₹{order.total.toFixed(2)}</td>
                   </tr>
                 )) : (
                   <tr>
@@ -622,14 +594,14 @@ export default function ReportsPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="p-4 border-t border-[#333] flex items-center justify-between bg-[#1a1a1a]">
-              <div className="text-xs text-slate-400">
+            <div className="p-4 border-t flex items-center justify-between bg-slate-50">
+              <div className="text-xs text-slate-500">
                 Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, searchedOrders.length)} of {searchedOrders.length} entries
               </div>
               <div className="flex gap-1">
-                <Button variant="outline" size="sm" className="border-[#444] bg-[#222] text-white hover:bg-[#333] h-8" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Prev</Button>
-                <div className="flex items-center justify-center px-3 text-sm font-medium text-white">{currentPage} / {totalPages}</div>
-                <Button variant="outline" size="sm" className="border-[#444] bg-[#222] text-white hover:bg-[#333] h-8" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
+                <Button variant="outline" size="sm" className="h-8" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>Prev</Button>
+                <div className="flex items-center justify-center px-3 text-sm font-medium text-slate-700">{currentPage} / {totalPages}</div>
+                <Button variant="outline" size="sm" className="h-8" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
               </div>
             </div>
           )}
@@ -639,26 +611,26 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Top Products Table */}
-          <div className="border border-[#333] rounded-xl bg-[#141414] overflow-hidden shadow-inner">
-            <h3 className="text-[#3b82f6] text-lg font-semibold p-4 border-b border-[#333] flex items-center gap-2 bg-[#1a1a1a]">
-              <span className="w-2 h-6 bg-[#3b82f6] rounded-sm inline-block"></span>
+          <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+            <h3 className="text-blue-600 text-lg font-semibold p-4 border-b bg-slate-50 flex items-center gap-2">
+              <span className="w-2 h-6 bg-blue-600 rounded-sm inline-block"></span>
               Top Products
             </h3>
             <div className="p-4">
-              <div className="grid grid-cols-12 text-xs uppercase text-slate-400 font-semibold mb-3 px-2">
+              <div className="grid grid-cols-12 text-xs uppercase text-slate-500 font-semibold mb-3 px-2">
                 <div className="col-span-6">Product Name</div>
                 <div className="col-span-3 text-right">Qty Sold</div>
                 <div className="col-span-3 text-right">Revenue</div>
               </div>
               <div className="space-y-2">
                 {topProductsData.map((p, i) => (
-                  <div key={i} className="grid grid-cols-12 items-center text-sm p-2 rounded hover:bg-[#222] transition-colors border border-transparent hover:border-[#333]">
-                    <div className="col-span-6 text-white font-medium flex items-center gap-2">
-                      <span className="w-5 h-5 rounded bg-[#333] flex items-center justify-center text-xs text-slate-400 shrink-0">{i+1}</span>
+                  <div key={i} className="grid grid-cols-12 items-center text-sm p-2 rounded hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                    <div className="col-span-6 text-slate-900 font-medium flex items-center gap-2">
+                      <span className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-xs text-slate-500 shrink-0">{i+1}</span>
                       <span className="truncate">{p.name}</span>
                     </div>
-                    <div className="col-span-3 text-right text-slate-300 font-mono bg-[#1a1a1a] rounded px-2 py-0.5 w-fit ml-auto">{p.qty}</div>
-                    <div className="col-span-3 text-right text-green-400 font-medium">₹{p.revenue.toLocaleString()}</div>
+                    <div className="col-span-3 text-right text-slate-600 font-mono bg-slate-50 rounded px-2 py-0.5 w-fit ml-auto">{p.qty}</div>
+                    <div className="col-span-3 text-right text-green-600 font-medium">₹{p.revenue.toLocaleString()}</div>
                   </div>
                 ))}
               </div>
@@ -666,26 +638,26 @@ export default function ReportsPage() {
           </div>
 
           {/* Top Categories Table */}
-          <div className="border border-[#333] rounded-xl bg-[#141414] overflow-hidden shadow-inner">
-            <h3 className="text-pink-500 text-lg font-semibold p-4 border-b border-[#333] flex items-center gap-2 bg-[#1a1a1a]">
-              <span className="w-2 h-6 bg-pink-500 rounded-sm inline-block"></span>
+          <div className="border rounded-xl bg-white overflow-hidden shadow-sm">
+            <h3 className="text-pink-600 text-lg font-semibold p-4 border-b bg-slate-50 flex items-center gap-2">
+              <span className="w-2 h-6 bg-pink-600 rounded-sm inline-block"></span>
               Top Categories
             </h3>
             <div className="p-4">
-              <div className="grid grid-cols-12 text-xs uppercase text-slate-400 font-semibold mb-3 px-2">
+              <div className="grid grid-cols-12 text-xs uppercase text-slate-500 font-semibold mb-3 px-2">
                 <div className="col-span-6">Category Name</div>
                 <div className="col-span-3 text-right">Qty Sold</div>
                 <div className="col-span-3 text-right">Revenue</div>
               </div>
               <div className="space-y-2">
                 {topCategoriesData.map((c, i) => (
-                  <div key={i} className="grid grid-cols-12 items-center text-sm p-2 rounded hover:bg-[#222] transition-colors border border-transparent hover:border-[#333]">
-                    <div className="col-span-6 text-white font-medium flex items-center gap-2">
+                  <div key={i} className="grid grid-cols-12 items-center text-sm p-2 rounded hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                    <div className="col-span-6 text-slate-900 font-medium flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{backgroundColor: c.color}}></div>
                       <span className="truncate">{c.name}</span>
                     </div>
-                    <div className="col-span-3 text-right text-slate-300 font-mono bg-[#1a1a1a] rounded px-2 py-0.5 w-fit ml-auto">{c.qty}</div>
-                    <div className="col-span-3 text-right text-green-400 font-medium">₹{c.revenue.toLocaleString()}</div>
+                    <div className="col-span-3 text-right text-slate-600 font-mono bg-slate-50 rounded px-2 py-0.5 w-fit ml-auto">{c.qty}</div>
+                    <div className="col-span-3 text-right text-green-600 font-medium">₹{c.revenue.toLocaleString()}</div>
                   </div>
                 ))}
               </div>
@@ -698,23 +670,23 @@ export default function ReportsPage() {
 
       {/* ----------------- ORDER DETAILS MODAL ----------------- */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
-        <DialogContent className="max-w-2xl bg-[#1e1e1e] border-[#333] text-white p-0 overflow-hidden">
+        <DialogContent className="max-w-2xl bg-white p-0 overflow-hidden">
           {selectedOrder && (
             <>
-              <div className="p-6 border-b border-[#333] bg-[#161616] flex justify-between items-start">
+              <div className="p-6 border-b bg-slate-50 flex justify-between items-start">
                 <div>
-                  <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-                    Order <span className="text-blue-400">{selectedOrder.id}</span>
+                  <DialogTitle className="text-2xl font-bold flex items-center gap-2 text-slate-900">
+                    Order <span className="text-blue-600">{selectedOrder.id}</span>
                   </DialogTitle>
-                  <DialogDescription className="text-slate-400 mt-1">
+                  <DialogDescription className="text-slate-500 mt-1">
                     {format(selectedOrder.date, "EEEE, MMMM do, yyyy 'at' h:mm a")}
                   </DialogDescription>
                 </div>
                 <div className="text-right">
-                  <div className="bg-[#2a2a2a] text-white px-3 py-1 rounded text-sm font-medium border border-[#444] inline-block mb-1">
+                  <div className="bg-white text-slate-700 px-3 py-1 rounded text-sm font-medium border inline-block mb-1">
                     {selectedOrder.pos}
                   </div>
-                  <div className="text-sm text-slate-400">{selectedOrder.session}</div>
+                  <div className="text-sm text-slate-500">{selectedOrder.session}</div>
                 </div>
               </div>
               
@@ -722,38 +694,38 @@ export default function ReportsPage() {
                 <div className="p-6 space-y-6">
                   
                   {/* Meta Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#111] p-4 rounded-lg border border-[#333]">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-lg border">
                     <div>
                       <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Customer</div>
-                      <div className="font-medium text-slate-200">{selectedOrder.customer}</div>
+                      <div className="font-medium text-slate-800">{selectedOrder.customer}</div>
                     </div>
                     <div>
                       <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Employee</div>
-                      <div className="font-medium text-slate-200">{selectedOrder.employee}</div>
+                      <div className="font-medium text-slate-800">{selectedOrder.employee}</div>
                     </div>
                     <div>
                       <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Table</div>
-                      <div className="font-medium text-slate-200">Table {Math.floor(Math.random() * 20) + 1}</div>
+                      <div className="font-medium text-slate-800">Table {Math.floor(Math.random() * 20) + 1}</div>
                     </div>
                     <div>
                       <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Status</div>
-                      <div className="font-medium text-green-400 flex items-center gap-1"><Check className="h-3 w-3"/> Paid</div>
+                      <div className="font-medium text-green-600 flex items-center gap-1"><Check className="h-3 w-3"/> Paid</div>
                     </div>
                   </div>
 
                   {/* Items List */}
                   <div>
-                    <h4 className="text-lg font-semibold mb-3 text-slate-200 border-b border-[#333] pb-2">Ordered Items</h4>
+                    <h4 className="text-lg font-semibold mb-3 text-slate-800 border-b pb-2">Ordered Items</h4>
                     <div className="space-y-2">
                       {selectedOrder.items.map((item: any, idx: number) => (
-                        <div key={idx} className="flex justify-between items-center bg-[#1a1a1a] p-3 rounded border border-[#222]">
+                        <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border">
                           <div>
-                            <div className="font-medium text-white">{item.name}</div>
+                            <div className="font-medium text-slate-900">{item.name}</div>
                             <div className="text-xs text-slate-500">{item.category} • ₹{item.price} each</div>
                           </div>
                           <div className="flex items-center gap-4">
-                            <div className="text-slate-300 bg-[#222] px-2 py-1 rounded text-sm">x{item.qty}</div>
-                            <div className="font-bold text-white w-16 text-right">₹{item.total}</div>
+                            <div className="text-slate-600 bg-slate-50 px-2 py-1 rounded text-sm">x{item.qty}</div>
+                            <div className="font-bold text-slate-900 w-16 text-right">₹{item.total}</div>
                           </div>
                         </div>
                       ))}
@@ -761,35 +733,35 @@ export default function ReportsPage() {
                   </div>
 
                   {/* Billing Summary */}
-                  <div className="bg-[#111] p-5 rounded-lg border border-[#333] w-full md:w-1/2 ml-auto space-y-2">
-                    <div className="flex justify-between text-slate-400 text-sm">
+                  <div className="bg-slate-50 p-5 rounded-lg border w-full md:w-1/2 ml-auto space-y-2">
+                    <div className="flex justify-between text-slate-600 text-sm">
                       <span>Subtotal</span>
                       <span>₹{selectedOrder.subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400 text-sm">
+                    <div className="flex justify-between text-slate-600 text-sm">
                       <span>Tax (5%)</span>
                       <span>₹{selectedOrder.tax.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-slate-400 text-sm">
+                    <div className="flex justify-between text-slate-600 text-sm">
                       <span>Discount</span>
                       <span>₹0.00</span>
                     </div>
-                    <Separator className="bg-[#333] my-2" />
-                    <div className="flex justify-between text-white font-bold text-lg">
+                    <Separator className="my-2" />
+                    <div className="flex justify-between text-slate-900 font-bold text-lg">
                       <span>Total</span>
-                      <span className="text-blue-400">₹{selectedOrder.total.toFixed(2)}</span>
+                      <span className="text-blue-600">₹{selectedOrder.total.toFixed(2)}</span>
                     </div>
-                    <div className="pt-2 mt-2 border-t border-[#222] flex justify-between text-xs text-slate-500">
+                    <div className="pt-2 mt-2 border-t flex justify-between text-xs text-slate-500">
                       <span>Payment Method</span>
-                      <span className="uppercase text-slate-300">CASH / CARD</span>
+                      <span className="uppercase text-slate-600">CASH / CARD</span>
                     </div>
                   </div>
 
                 </div>
               </ScrollArea>
               
-              <div className="p-4 border-t border-[#333] bg-[#161616] flex justify-end gap-3">
-                <Button variant="outline" className="border-[#444] bg-transparent text-white hover:bg-[#333]" onClick={() => setSelectedOrder(null)}>
+              <div className="p-4 border-t bg-slate-50 flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setSelectedOrder(null)}>
                   Close
                 </Button>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2" onClick={() => handleExport('pdf')}>
