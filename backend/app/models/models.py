@@ -5,7 +5,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 import enum
 import uuid
-import datetime
+from datetime import datetime
 
 from app.database import Base
 
