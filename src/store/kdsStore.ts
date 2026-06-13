@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import api from "../lib/api";
 
 export type KDSStage = "To Cook" | "Preparing" | "Completed";
 
@@ -11,59 +12,63 @@ export type KDSItem = {
 };
 
 export type KDSOrder = {
-  id: string; // Ticket number
+  id: string;
+  ticketNumber: string;
   customerName?: string;
   items: KDSItem[];
   stage: KDSStage;
   timestamp: string; // ISO String
+  tableId?: string;
 };
 
 interface KDSState {
   orders: KDSOrder[];
-  addOrder: (order: Omit<KDSOrder, "id">) => void;
-  toggleItemPrepared: (orderId: string, itemId: string) => void;
-  advanceOrderStage: (orderId: string) => void;
+  loading: boolean;
+  fetchOrders: () => Promise<void>;
+  addOrder: (order: {
+    customerName?: string;
+    items: { name: string; quantity: number; categoryId?: string }[];
+    tableId?: string;
+  }) => Promise<void>;
+  toggleItemPrepared: (orderId: string, itemId: string) => Promise<void>;
+  advanceOrderStage: (orderId: string) => Promise<void>;
 }
 
-const initialOrders: KDSOrder[] = [
-  {
-    id: "101",
-    customerName: "Table 4",
-    stage: "To Cook",
-    timestamp: new Date().toISOString(),
-    items: [
-      { id: "i1", name: "Margherita Pizza", quantity: 1, prepared: false, categoryId: "c1" },
-      { id: "i2", name: "Garlic Bread", quantity: 2, prepared: false, categoryId: "c2" },
-    ],
-  },
-  {
-    id: "102",
-    customerName: "John (Takeaway)",
-    stage: "Preparing",
-    timestamp: new Date(Date.now() - 500000).toISOString(),
-    items: [
-      { id: "i3", name: "Iced Latte", quantity: 1, prepared: true, categoryId: "c3" },
-      { id: "i4", name: "Chocolate Croissant", quantity: 1, prepared: false, categoryId: "c4" },
-    ],
-  },
-  {
-    id: "103",
-    customerName: "Table 12",
-    stage: "To Cook",
-    timestamp: new Date(Date.now() - 120000).toISOString(),
-    items: [
-      { id: "i5", name: "Pasta Carbonara", quantity: 2, prepared: false, categoryId: "c1" },
-    ],
-  },
-];
+export const useKdsStore = create<KDSState>((set, get) => ({
+  orders: [],
+  loading: false,
 
-export const useKdsStore = create<KDSState>((set) => ({
-  orders: initialOrders,
-  addOrder: (order) => {
-    const newOrder = { ...order, id: Math.random().toString(36).substring(2, 9) };
-    set((state) => ({ orders: [...state.orders, newOrder] }));
+  fetchOrders: async () => {
+    try {
+      set({ loading: true });
+      const res = await api.get("/kds");
+      set({ orders: res.data, loading: false });
+    } catch (err) {
+      console.error("Failed to fetch KDS orders:", err);
+      set({ loading: false });
+    }
   },
-  toggleItemPrepared: (orderId, itemId) => {
+
+  addOrder: async (orderData) => {
+    try {
+      const res = await api.post("/kds", orderData);
+      set((state) => {
+        const existingIdx = state.orders.findIndex(o => o.id === res.data.id);
+        if (existingIdx >= 0) {
+          const newOrders = [...state.orders];
+          newOrders[existingIdx] = res.data;
+          return { orders: newOrders };
+        } else {
+          return { orders: [...state.orders, res.data] };
+        }
+      });
+    } catch (err) {
+      console.error("Failed to create KDS order:", err);
+    }
+  },
+
+  toggleItemPrepared: async (orderId, itemId) => {
+    // Optimistic update
     set((state) => ({
       orders: state.orders.map((o) => {
         if (o.id !== orderId) return o;
@@ -75,15 +80,41 @@ export const useKdsStore = create<KDSState>((set) => ({
         };
       }),
     }));
+
+    try {
+      const res = await api.patch(`/kds/${orderId}/items/${itemId}/toggle`);
+      // Sync with server response
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === orderId ? res.data : o)),
+      }));
+    } catch (err) {
+      console.error("Failed to toggle item:", err);
+      // Revert on failure
+      get().fetchOrders();
+    }
   },
-  advanceOrderStage: (orderId) => {
+
+  advanceOrderStage: async (orderId) => {
+    // Optimistic update
     set((state) => ({
       orders: state.orders.map((o) => {
         if (o.id !== orderId) return o;
-        if (o.stage === "To Cook") return { ...o, stage: "Preparing" };
-        if (o.stage === "Preparing") return { ...o, stage: "Completed" };
+        if (o.stage === "To Cook") return { ...o, stage: "Preparing" as KDSStage };
+        if (o.stage === "Preparing") return { ...o, stage: "Completed" as KDSStage };
         return o;
       }),
     }));
+
+    try {
+      const res = await api.patch(`/kds/${orderId}/stage`);
+      // Sync with server response
+      set((state) => ({
+        orders: state.orders.map((o) => (o.id === orderId ? res.data : o)),
+      }));
+    } catch (err) {
+      console.error("Failed to advance stage:", err);
+      // Revert on failure
+      get().fetchOrders();
+    }
   },
 }));

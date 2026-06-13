@@ -11,6 +11,7 @@ from app.routers.resources import (
     coupons_router, promotions_router,
     orders_router,
 )
+from app.routers.kds import router as kds_router
 
 # Create tables on startup
 Base.metadata.create_all(bind=engine)
@@ -40,6 +41,7 @@ app.include_router(payments_router)
 app.include_router(coupons_router)
 app.include_router(promotions_router)
 app.include_router(orders_router)
+app.include_router(kds_router)
 
 
 @app.get("/", tags=["Health"])

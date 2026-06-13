@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Clock, CheckCircle2, ChefHat, Search, Filter, Play, Check } from "lucide-react";
 
@@ -14,7 +14,14 @@ import { Separator } from "../../components/ui/separator";
 type TabFilter = "All" | KDSStage;
 
 export default function KitchenDisplayPage() {
-  const { orders, toggleItemPrepared, advanceOrderStage } = useKdsStore();
+  const { orders, toggleItemPrepared, advanceOrderStage, fetchOrders } = useKdsStore();
+
+  // Fetch orders on mount + poll every 5 seconds
+  useEffect(() => {
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const [activeTab, setActiveTab] = useState<TabFilter>("To Cook");
   const [searchQuery, setSearchQuery] = useState("");
@@ -37,7 +44,8 @@ export default function KitchenDisplayPage() {
       // Search filter (ticket or customer)
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        if (!order.id.toLowerCase().includes(q) && !order.customerName?.toLowerCase().includes(q)) {
+        const ticketNum = (order as any).ticketNumber || order.id;
+        if (!ticketNum.toLowerCase().includes(q) && !order.customerName?.toLowerCase().includes(q)) {
           return false;
         }
       }
@@ -189,7 +197,7 @@ export default function KitchenDisplayPage() {
                   {/* Card Header */}
                   <div className={`p-5 flex justify-between items-center border-b ${getStageColor(order.stage)}`}>
                     <div>
-                      <h3 className="text-2xl font-extrabold tracking-tight">#{order.id}</h3>
+                      <h3 className="text-2xl font-extrabold tracking-tight">#{(order as any).ticketNumber || order.id}</h3>
                       <p className="text-sm font-semibold opacity-90 mt-0.5">{order.customerName || "Walk-in"}</p>
                     </div>
                     <div className="text-right">

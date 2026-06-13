@@ -189,3 +189,38 @@ class Order(Base):
     subtotal = Column(Float, default=0.0)
     tax = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
+
+
+# ─── KDS (Kitchen Display System) ────────────────────────────────────────────
+
+class KDSStage(str, enum.Enum):
+    to_cook = "To Cook"
+    preparing = "Preparing"
+    completed = "Completed"
+
+
+class KDSOrder(Base):
+    __tablename__ = "kds_orders"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    ticketNumber = Column(String, nullable=False)
+    customerName = Column(String, nullable=True)
+    stage = Column(SAEnum(KDSStage), default=KDSStage.to_cook)
+    timestamp = Column(String, nullable=False)
+    tableId = Column(String, ForeignKey("tables.id"), nullable=True)
+
+    items = relationship("KDSOrderItem", back_populates="kds_order", cascade="all, delete-orphan")
+
+
+class KDSOrderItem(Base):
+    __tablename__ = "kds_order_items"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    kdsOrderId = Column(String, ForeignKey("kds_orders.id"), nullable=False)
+    name = Column(String, nullable=False)
+    quantity = Column(Integer, default=1)
+    prepared = Column(Boolean, default=False)
+    categoryId = Column(String, nullable=True)
+
+    kds_order = relationship("KDSOrder", back_populates="items")
+
