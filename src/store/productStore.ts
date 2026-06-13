@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import api from "../lib/api";
 
 export type Category = {
   id: string;
@@ -20,66 +21,46 @@ export type Product = {
 interface ProductState {
   categories: Category[];
   products: Product[];
-  addCategory: (category: Omit<Category, "id">) => Category;
-  updateCategory: (id: string, category: Partial<Category>) => void;
-  deleteCategory: (id: string) => void;
+  fetchCategories: () => Promise<void>;
+  fetchProducts: () => Promise<void>;
+  addCategory: (category: Omit<Category, "id">) => Promise<Category>;
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   reorderCategories: (startIndex: number, endIndex: number) => void;
-  addProduct: (product: Omit<Product, "id">) => void;
-  updateProduct: (id: string, product: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+  addProduct: (product: Omit<Product, "id">) => Promise<void>;
+  updateProduct: (id: string, product: Partial<Product>) => Promise<void>;
+  deleteProduct: (id: string) => Promise<void>;
 }
 
-const initialCategories: Category[] = [
-  { id: "1", name: "Appetizers", color: "bg-red-500" },
-  { id: "2", name: "Main Course", color: "bg-blue-500" },
-  { id: "3", name: "Desserts", color: "bg-pink-500" },
-  { id: "4", name: "Beverages", color: "bg-yellow-500" },
-];
-
-const initialProducts: Product[] = [
-  {
-    id: "1",
-    name: "Margherita Pizza",
-    categoryId: "2",
-    price: 12.99,
-    description: "Classic cheese and tomato pizza.",
-    isVeg: true,
-    status: "available",
-  },
-  {
-    id: "2",
-    name: "Chicken Wings",
-    categoryId: "1",
-    price: 8.99,
-    description: "Spicy buffalo wings.",
-    isVeg: false,
-    status: "available",
-  },
-  {
-    id: "3",
-    name: "Chocolate Lava Cake",
-    categoryId: "3",
-    price: 6.5,
-    description: "Warm chocolate cake with a gooey center.",
-    isVeg: true,
-    status: "unavailable",
-  },
-];
-
 export const useProductStore = create<ProductState>((set) => ({
-  categories: initialCategories,
-  products: initialProducts,
-  addCategory: (category) => {
-    const newCategory = { ...category, id: Math.random().toString(36).substring(2, 9) };
+  categories: [],
+  products: [],
+  fetchCategories: async () => {
+    const res = await api.get("/categories");
+    set({ categories: res.data });
+  },
+  fetchProducts: async () => {
+    const res = await api.get("/products");
+    set({ products: res.data });
+  },
+  addCategory: async (category) => {
+    const res = await api.post("/categories", category);
+    const newCategory = res.data;
     set((state) => ({ categories: [...state.categories, newCategory] }));
     return newCategory;
   },
-  updateCategory: (id, updatedFields) => {
+  updateCategory: async (id, updatedFields) => {
+    // Fetch current, merge, and PUT
+    const current = useProductStore.getState().categories.find((c) => c.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updatedFields };
+    await api.put(`/categories/${id}`, { name: merged.name, color: merged.color });
     set((state) => ({
       categories: state.categories.map((c) => (c.id === id ? { ...c, ...updatedFields } : c)),
     }));
   },
-  deleteCategory: (id) => {
+  deleteCategory: async (id) => {
+    await api.delete(`/categories/${id}`);
     set((state) => ({
       categories: state.categories.filter((c) => c.id !== id),
     }));
@@ -92,16 +73,29 @@ export const useProductStore = create<ProductState>((set) => ({
       return { categories: newCategories };
     });
   },
-  addProduct: (product) => {
-    const newProduct = { ...product, id: Math.random().toString(36).substring(2, 9) };
+  addProduct: async (product) => {
+    const res = await api.post("/products", product);
+    const newProduct = res.data;
     set((state) => ({ products: [...state.products, newProduct] }));
   },
-  updateProduct: (id, updatedFields) => {
+  updateProduct: async (id, updatedFields) => {
+    const current = useProductStore.getState().products.find((p) => p.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updatedFields };
+    await api.put(`/products/${id}`, {
+      name: merged.name,
+      categoryId: merged.categoryId,
+      price: merged.price,
+      description: merged.description,
+      isVeg: merged.isVeg,
+      status: merged.status,
+    });
     set((state) => ({
       products: state.products.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)),
     }));
   },
-  deleteProduct: (id) => {
+  deleteProduct: async (id) => {
+    await api.delete(`/products/${id}`);
     set((state) => ({
       products: state.products.filter((p) => p.id !== id),
     }));

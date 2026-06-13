@@ -11,6 +11,7 @@ export const MENU_LINKS = [
   { label: "Promotions", to: "/admin/promotions" },
   { label: "Floors", to: "/admin/floors" },
   { label: "Booking", to: "/admin/bookings" },
+  { label: "Order History", to: "/admin/orders" },
   { label: "User/Employee", to: "/admin/employees" },
   { label: "Reports", to: "/admin/reports" },
   { label: "KDS", to: "/admin/kds-settings" },

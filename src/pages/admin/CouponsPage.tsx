@@ -56,9 +56,13 @@ const couponSchema = z.object({
 type CouponFormValues = z.infer<typeof couponSchema>;
 
 export default function CouponsPage() {
-  const { coupons, addCoupon, updateCoupon, deleteCoupon, checkExpirations } = usePromotionStore();
+  const { coupons, addCoupon, updateCoupon, deleteCoupon, checkExpirations, fetchCoupons } = usePromotionStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
 
   useEffect(() => {
     checkExpirations();

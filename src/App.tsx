@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import AdminLayout from "./layouts/AdminLayout";
 import POSLayout from "./layouts/POSLayout";
@@ -6,7 +6,6 @@ import POSLayout from "./layouts/POSLayout";
 import LoginPage from "./pages/auth/LoginPage";
 import AdminSignupPage from "./pages/auth/AdminSignupPage";
 
-import DashboardPage from "./pages/admin/DashboardPage";
 import ProductsPage from "./pages/admin/ProductsPage";
 import ProductFormPage from "./pages/admin/ProductFormPage";
 import CategoriesPage from "./pages/admin/CategoriesPage";
@@ -18,6 +17,7 @@ import BookingsPage from "./pages/admin/BookingsPage";
 import EmployeesPage from "./pages/admin/EmployeesPage";
 import KDSSettingsPage from "./pages/admin/KDSSettingsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
+import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 
 import FloorSelectPage from "./pages/pos/FloorSelectPage";
 import OrderViewPage from "./pages/pos/OrderViewPage";
@@ -28,19 +28,21 @@ import CustomerManagePage from "./pages/pos/CustomerManagePage";
 import KitchenDisplayPage from "./pages/kitchen/KitchenDisplayPage";
 
 import RouteIndexPage from "./pages/RouteIndexPage";
+import LandingPage from "./pages/LandingPage";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RouteIndexPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dev" element={<RouteIndexPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<AdminSignupPage />} />
         <Route path="/pos/login" element={<LoginPage />} />
         <Route path="/kitchen" element={<KitchenDisplayPage />} />
 
         <Route path="/admin" element={<AdminLayout />}>
-          <Route path="dashboard" element={<DashboardPage />} />
+          <Route index element={<Navigate to="products" replace />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
           <Route path="products/:id/edit" element={<ProductFormPage />} />
@@ -50,6 +52,7 @@ export default function App() {
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="floors" element={<FloorsPage />} />
           <Route path="bookings" element={<BookingsPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="employees" element={<EmployeesPage />} />
           <Route path="kds-settings" element={<KDSSettingsPage />} />
           <Route path="reports" element={<ReportsPage />} />
