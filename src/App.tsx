@@ -3,9 +3,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminLayout from "./layouts/AdminLayout";
 import POSLayout from "./layouts/POSLayout";
 
-import AdminLoginPage from "./pages/auth/AdminLoginPage";
+import LoginPage from "./pages/auth/LoginPage";
 import AdminSignupPage from "./pages/auth/AdminSignupPage";
-import WaiterPinLoginPage from "./pages/auth/WaiterPinLoginPage";
 
 import DashboardPage from "./pages/admin/DashboardPage";
 import ProductsPage from "./pages/admin/ProductsPage";
@@ -36,9 +35,9 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<RouteIndexPage />} />
-        <Route path="/login" element={<AdminLoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<AdminSignupPage />} />
-        <Route path="/pos/login" element={<WaiterPinLoginPage />} />
+        <Route path="/pos/login" element={<LoginPage />} />
         <Route path="/kitchen" element={<KitchenDisplayPage />} />
 
         <Route path="/admin" element={<AdminLayout />}>
