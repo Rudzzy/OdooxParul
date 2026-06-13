@@ -10,6 +10,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useFloorStore } from "@/store/floorStore";
 import { useProductStore } from "@/store/productStore";
+import { useKdsStore } from "@/store/kdsStore";
 import api from "@/lib/api";
 
 // Fallback Mock Data (used if API returns nothing)
@@ -43,6 +44,7 @@ interface OrderItem {
   id: string;
   menuItem: MenuItem;
   quantity: number;
+  sentQuantity: number;
 }
 
 type PaymentMethod = "CASH" | "UPI" | "CARD" | null;
@@ -91,6 +93,9 @@ export default function OrderViewPage() {
 
   // Product Store (fetch from DB)
   const { products: dbProducts, categories: dbCategories, fetchProducts, fetchCategories: fetchCats } = useProductStore();
+  
+  // KDS Store
+  const { addOrder: sendToKds } = useKdsStore();
 
   // Build menu items from DB products, fall back to mock if empty
   const [menuItems, setMenuItems] = useState<MenuItem[]>(fallbackMenuItems);
@@ -137,6 +142,10 @@ export default function OrderViewPage() {
   const [numpadValue, setNumpadValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  
+  // Kitchen State
+  const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
+  const [isKitchenSent, setIsKitchenSent] = useState(false);
 
   // Dialog States
   const [customers, setCustomers] = useState(mockCustomers);
@@ -177,26 +186,30 @@ export default function OrderViewPage() {
 
   // Cart Functions
   const handleAddItem = (menuItem: MenuItem) => {
+    setIsKitchenSent(false);
     setOrderItems(prev => {
       const existing = prev.find(item => item.menuItem.id === menuItem.id);
       if (existing) {
         return prev.map(item => item.menuItem.id === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item);
       }
-      return [...prev, { id: Math.random().toString(), menuItem, quantity: 1 }];
+      return [...prev, { id: Math.random().toString(), menuItem, quantity: 1, sentQuantity: 0 }];
     });
   };
 
   const handleUpdateQuantity = (id: string, delta: number) => {
+    setIsKitchenSent(false);
     setOrderItems(prev => prev.map(item => {
       if (item.id === id) {
         const newQty = item.quantity + delta;
-        return newQty > 0 ? { ...item, quantity: newQty } : item;
+        const newSentQty = Math.min(item.sentQuantity, newQty);
+        return newQty > 0 ? { ...item, quantity: newQty, sentQuantity: newSentQty } : item;
       }
       return item;
     }).filter(item => item.quantity > 0));
   };
 
   const handleRemoveItem = (id: string) => {
+    setIsKitchenSent(false);
     setOrderItems(prev => prev.filter(item => item.id !== id));
   };
 
@@ -213,6 +226,31 @@ export default function OrderViewPage() {
       setIsProcessing(false);
       setPaymentSuccess(true);
     }, 2000);
+  };
+
+  const handleSendToKitchen = async () => {
+    const unsentItems = orderItems.filter(item => item.quantity > item.sentQuantity);
+    if (unsentItems.length === 0) return;
+    
+    setIsSendingToKitchen(true);
+    
+    await sendToKds({
+      customerName: selectedCustomer ? selectedCustomer.name : tableName,
+      tableId: tableId,
+      items: unsentItems.map(item => ({
+        name: item.menuItem.name,
+        quantity: item.quantity - item.sentQuantity,
+        // Since we don't have categoryId mapping on the mock fallback, omit it for now or pass if available
+      }))
+    });
+    
+    setOrderItems(prev => prev.map(item => ({
+      ...item,
+      sentQuantity: item.quantity
+    })));
+    
+    setIsSendingToKitchen(false);
+    setIsKitchenSent(true);
   };
 
   const handleNewOrder = () => {
@@ -368,8 +406,18 @@ export default function OrderViewPage() {
             <div className="bg-white border-t border-slate-200 flex flex-col">
               
               <div className="p-3">
-                <Button className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-base shadow-sm">
-                  Send to Kitchen
+                <Button 
+                  className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-base shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={orderItems.filter(i => i.quantity > i.sentQuantity).length === 0 || isSendingToKitchen || isKitchenSent}
+                  onClick={handleSendToKitchen}
+                >
+                  {isSendingToKitchen ? (
+                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending...</>
+                  ) : orderItems.filter(i => i.quantity > i.sentQuantity).length === 0 && orderItems.length > 0 ? (
+                    <><CheckCircle2 className="mr-2 h-5 w-5" /> Sent to Kitchen</>
+                  ) : (
+                    "Send to Kitchen"
+                  )}
                 </Button>
               </div>
 

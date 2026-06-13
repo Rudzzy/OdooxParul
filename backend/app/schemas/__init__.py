@@ -171,3 +171,37 @@ class OrderOut(BaseModel):
     total: float
     class Config:
         from_attributes = True
+
+
+# ─── KDS (Kitchen Display System) ────────────────────────────────────────────
+
+class KDSOrderItemCreate(BaseModel):
+    name: str
+    quantity: int = 1
+    categoryId: Optional[str] = None
+
+class KDSOrderItemOut(BaseModel):
+    id: str
+    name: str
+    quantity: int
+    prepared: bool
+    categoryId: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class KDSOrderCreate(BaseModel):
+    customerName: Optional[str] = None
+    items: List[KDSOrderItemCreate] = []
+    tableId: Optional[str] = None
+
+class KDSOrderOut(BaseModel):
+    id: str
+    ticketNumber: str
+    customerName: Optional[str] = None
+    stage: str
+    timestamp: str
+    tableId: Optional[str] = None
+    items: List[KDSOrderItemOut] = []
+    class Config:
+        from_attributes = True
+
