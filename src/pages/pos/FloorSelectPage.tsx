@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, Filter, Users, IndianRupee } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import api from "@/lib/api";
 
 type TableStatus = "Available" | "Ordering" | "Sent To Kitchen" | "Ready To Serve" | "Payment Pending";
 
@@ -16,21 +16,6 @@ interface Table {
   orderAmount: number;
   customerName?: string;
 }
-
-const mockTables: Table[] = [
-  { id: "t1", number: "1", status: "Available", guests: 0, orderAmount: 0 },
-  { id: "t2", number: "2", status: "Ordering", guests: 4, orderAmount: 0, customerName: "Rahul" },
-  { id: "t3", number: "3", status: "Sent To Kitchen", guests: 2, orderAmount: 1250 },
-  { id: "t4", number: "4", status: "Payment Pending", guests: 6, orderAmount: 3400, customerName: "Priya" },
-  { id: "t5", number: "5", status: "Ready To Serve", guests: 2, orderAmount: 450 },
-  { id: "t6", number: "6", status: "Available", guests: 0, orderAmount: 0 },
-  { id: "t7", number: "7", status: "Sent To Kitchen", guests: 3, orderAmount: 850 },
-  { id: "t8", number: "8", status: "Available", guests: 0, orderAmount: 0 },
-  { id: "t9", number: "9", status: "Ordering", guests: 5, orderAmount: 0 },
-  { id: "t10", number: "10", status: "Ready To Serve", guests: 2, orderAmount: 450 },
-  { id: "t11", number: "11", status: "Payment Pending", guests: 4, orderAmount: 2100 },
-  { id: "t12", number: "12", status: "Available", guests: 0, orderAmount: 0 },
-];
 
 const getStatusColor = (status: TableStatus) => {
   switch (status) {
@@ -60,8 +45,29 @@ export default function FloorSelectPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All Tables");
+  const [tables, setTables] = useState<Table[]>([]);
 
-  const filteredTables = mockTables.filter((table) => {
+  useEffect(() => {
+    const fetchTables = async () => {
+      try {
+        const res = await api.get("/tables");
+        const backendTables = res.data.map((t: any) => ({
+          id: t.id,
+          number: t.tableNumber.replace(/^T/i, ""),
+          status: t.isActive ? "Available" as TableStatus : "Available" as TableStatus,
+          guests: 0,
+          orderAmount: 0,
+        }));
+        setTables(backendTables);
+      } catch {
+        // If API fails, show empty state
+        setTables([]);
+      }
+    };
+    fetchTables();
+  }, []);
+
+  const filteredTables = tables.filter((table) => {
     // Search matching
     const matchesSearch = table.number.includes(searchQuery) || 
       (table.customerName?.toLowerCase() || "").includes(searchQuery.toLowerCase());
