@@ -190,7 +190,7 @@ class Order(Base):
     subtotal = Column(Float, default=0.0)
     tax = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
-    timestamp = Column(String, default=lambda: datetime.utcnow().isoformat())
+    timestamp = Column(String, default=lambda: datetime.datetime.now().isoformat())
 
 
 # ─── KDS (Kitchen Display System) ────────────────────────────────────────────
