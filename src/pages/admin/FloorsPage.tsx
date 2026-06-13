@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -52,7 +52,12 @@ type FloorFormValues = z.infer<typeof floorSchema>;
 type TableFormValues = z.infer<typeof tableSchema>;
 
 export default function FloorsPage() {
-  const { floors, tables, addFloor, updateFloor, deleteFloor, addTable, updateTable, deleteTable } = useFloorStore();
+  const { floors, tables, addFloor, updateFloor, deleteFloor, addTable, updateTable, deleteTable, fetchFloors, fetchTables } = useFloorStore();
+
+  useEffect(() => {
+    fetchFloors();
+    fetchTables();
+  }, []);
   
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null);
 
@@ -93,12 +98,12 @@ export default function FloorsPage() {
     setIsFloorModalOpen(true);
   };
 
-  const onFloorSubmit = (data: FloorFormValues) => {
+  const onFloorSubmit = async (data: FloorFormValues) => {
     if (editingFloor) {
-      updateFloor(editingFloor.id, data);
+      await updateFloor(editingFloor.id, data);
       toast.success("Floor updated");
     } else {
-      const newFloor = addFloor(data);
+      const newFloor = await addFloor(data);
       toast.success("Floor created");
       if (!selectedFloorId) setSelectedFloorId(newFloor.id); // Auto select if first floor
     }

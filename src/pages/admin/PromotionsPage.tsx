@@ -68,9 +68,13 @@ const DAYS_OF_WEEK = [
 ];
 
 export default function PromotionsPage() {
-  const { promotions, addPromotion, updatePromotion, deletePromotion, checkExpirations } = usePromotionStore();
+  const { promotions, addPromotion, updatePromotion, deletePromotion, checkExpirations, fetchPromotions } = usePromotionStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPromotions();
+  }, []);
 
   useEffect(() => {
     checkExpirations();

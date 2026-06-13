@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import api from "../lib/api";
 
 export type PaymentType = "Cash" | "Card/Digital" | "UPI";
 
@@ -12,38 +13,57 @@ export type PaymentMethod = {
 
 interface PaymentState {
   paymentMethods: PaymentMethod[];
-  addPaymentMethod: (method: Omit<PaymentMethod, "id">) => PaymentMethod;
-  updatePaymentMethod: (id: string, method: Partial<PaymentMethod>) => void;
-  deletePaymentMethod: (id: string) => void;
-  toggleActive: (id: string) => void;
+  fetchPaymentMethods: () => Promise<void>;
+  addPaymentMethod: (method: Omit<PaymentMethod, "id">) => Promise<PaymentMethod>;
+  updatePaymentMethod: (id: string, method: Partial<PaymentMethod>) => Promise<void>;
+  deletePaymentMethod: (id: string) => Promise<void>;
+  toggleActive: (id: string) => Promise<void>;
 }
 
-const initialPaymentMethods: PaymentMethod[] = [
-  { id: "1", name: "Cash", type: "Cash", isActive: true },
-  { id: "2", name: "Credit/Debit Card", type: "Card/Digital", isActive: true },
-  { id: "3", name: "UPI - Merchant", type: "UPI", isActive: true, upiId: "merchant@upi" },
-];
-
 export const usePaymentStore = create<PaymentState>((set) => ({
-  paymentMethods: initialPaymentMethods,
-  addPaymentMethod: (method) => {
-    const newMethod = { ...method, id: Math.random().toString(36).substring(2, 9) };
+  paymentMethods: [],
+  fetchPaymentMethods: async () => {
+    const res = await api.get("/payment-methods");
+    set({ paymentMethods: res.data });
+  },
+  addPaymentMethod: async (method) => {
+    const res = await api.post("/payment-methods", method);
+    const newMethod = res.data;
     set((state) => ({ paymentMethods: [...state.paymentMethods, newMethod] }));
     return newMethod;
   },
-  updatePaymentMethod: (id, updatedFields) => {
+  updatePaymentMethod: async (id, updatedFields) => {
+    const current = usePaymentStore.getState().paymentMethods.find((p) => p.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updatedFields };
+    await api.put(`/payment-methods/${id}`, {
+      name: merged.name,
+      type: merged.type,
+      isActive: merged.isActive,
+      upiId: merged.upiId || null,
+    });
     set((state) => ({
       paymentMethods: state.paymentMethods.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)),
     }));
   },
-  deletePaymentMethod: (id) => {
+  deletePaymentMethod: async (id) => {
+    await api.delete(`/payment-methods/${id}`);
     set((state) => ({
       paymentMethods: state.paymentMethods.filter((p) => p.id !== id),
     }));
   },
-  toggleActive: (id) => {
+  toggleActive: async (id) => {
+    const current = usePaymentStore.getState().paymentMethods.find((p) => p.id === id);
+    if (!current) return;
+    const toggled = { ...current, isActive: !current.isActive };
+    await api.put(`/payment-methods/${id}`, {
+      name: toggled.name,
+      type: toggled.type,
+      isActive: toggled.isActive,
+      upiId: toggled.upiId || null,
+    });
     set((state) => ({
-      paymentMethods: state.paymentMethods.map((p) => 
+      paymentMethods: state.paymentMethods.map((p) =>
         p.id === id ? { ...p, isActive: !p.isActive } : p
       ),
     }));

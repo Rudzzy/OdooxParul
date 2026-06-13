@@ -28,8 +28,12 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function PaymentMethodsPage() {
-  const { paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod } = usePaymentStore();
+  const { paymentMethods, addPaymentMethod, updatePaymentMethod, deletePaymentMethod, fetchPaymentMethods } = usePaymentStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPaymentMethods();
+  }, []);
 
   const isEditing = selectedId !== null;
   const currentMethod = isEditing ? paymentMethods.find(p => p.id === selectedId) : null;
@@ -65,12 +69,12 @@ export default function PaymentMethodsPage() {
     }
   }, [currentMethod, form]);
 
-  const onSubmit = (data: FormValues) => {
+  const onSubmit = async (data: FormValues) => {
     if (isEditing && selectedId) {
-      updatePaymentMethod(selectedId, data);
+      await updatePaymentMethod(selectedId, data);
       toast.success("Payment method updated");
     } else {
-      const newMethod = addPaymentMethod(data);
+      const newMethod = await addPaymentMethod(data);
       setSelectedId(newMethod.id);
       toast.success("Payment method created");
     }

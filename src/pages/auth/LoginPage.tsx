@@ -50,17 +50,24 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Mock API call
-    setTimeout(() => {
-      setIsLoading(false);
-      if (email === "admin" && password === "admin") {
-        login("mock-admin-token-123", "admin");
-        navigate("/admin/dashboard");
-      } else {
-        toast.error("Invalid credentials");
-        triggerErrorShake();
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        throw new Error("Invalid credentials");
       }
-    }, 1000);
+      const data = await res.json();
+      login(data.token, data.user.role === "admin" ? "admin" : "waiter");
+      navigate("/admin/dashboard");
+    } catch {
+      toast.error("Invalid credentials");
+      triggerErrorShake();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleWaiterLogin = async (e: FormEvent) => {
@@ -76,17 +83,24 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // Mock API call
-    setTimeout(() => {
-      setIsLoading(false);
-      if (pin === "0001") {
-        login("mock-waiter-token-456", "waiter");
-        navigate("/pos/floor");
-      } else {
-        toast.error("Invalid PIN");
-        triggerErrorShake();
+    try {
+      const res = await fetch("http://localhost:8000/api/auth/pin-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      if (!res.ok) {
+        throw new Error("Invalid PIN");
       }
-    }, 1000);
+      const data = await res.json();
+      login(data.token, "waiter");
+      navigate("/pos/floor");
+    } catch {
+      toast.error("Invalid PIN");
+      triggerErrorShake();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const triggerErrorShake = () => {

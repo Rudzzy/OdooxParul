@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import api from "../lib/api";
 
 export type BookingStatus = "Pending" | "Confirmed" | "Seated" | "Cancelled";
 
@@ -16,63 +17,44 @@ export type Booking = {
 
 interface BookingState {
   bookings: Booking[];
-  addBooking: (booking: Omit<Booking, "id">) => Booking;
-  updateBooking: (id: string, booking: Partial<Booking>) => void;
-  deleteBooking: (id: string) => void;
+  fetchBookings: () => Promise<void>;
+  addBooking: (booking: Omit<Booking, "id">) => Promise<Booking>;
+  updateBooking: (id: string, booking: Partial<Booking>) => Promise<void>;
+  deleteBooking: (id: string) => Promise<void>;
 }
 
-const today = new Date();
-const tomorrow = new Date(today);
-tomorrow.setDate(today.getDate() + 1);
-
-const initialBookings: Booking[] = [
-  {
-    id: "1",
-    customerName: "Alice Smith",
-    customerPhone: "555-0100",
-    date: today.toISOString().split("T")[0],
-    time: "19:00",
-    partySize: 2,
-    tableId: "1",
-    status: "Confirmed",
-    charges: 150,
-  },
-  {
-    id: "2",
-    customerName: "Bob Jones",
-    customerPhone: "555-0200",
-    date: today.toISOString().split("T")[0],
-    time: "20:30",
-    partySize: 4,
-    status: "Pending",
-    charges: 0,
-  },
-  {
-    id: "3",
-    customerName: "Charlie Davis",
-    customerPhone: "555-0300",
-    date: tomorrow.toISOString().split("T")[0],
-    time: "18:00",
-    partySize: 6,
-    tableId: "3",
-    status: "Confirmed",
-    charges: 500,
-  },
-];
-
 export const useBookingStore = create<BookingState>((set) => ({
-  bookings: initialBookings,
-  addBooking: (booking) => {
-    const newBooking = { ...booking, id: Math.random().toString(36).substring(2, 9) };
+  bookings: [],
+  fetchBookings: async () => {
+    const res = await api.get("/bookings");
+    set({ bookings: res.data });
+  },
+  addBooking: async (booking) => {
+    const res = await api.post("/bookings", booking);
+    const newBooking = res.data;
     set((state) => ({ bookings: [...state.bookings, newBooking] }));
     return newBooking;
   },
-  updateBooking: (id, updatedFields) => {
+  updateBooking: async (id, updatedFields) => {
+    const current = useBookingStore.getState().bookings.find((b) => b.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updatedFields };
+    await api.put(`/bookings/${id}`, {
+      customerName: merged.customerName,
+      customerPhone: merged.customerPhone,
+      date: merged.date,
+      time: merged.time,
+      partySize: merged.partySize,
+      tableId: merged.tableId || null,
+      status: merged.status,
+      charges: merged.charges,
+    });
     set((state) => ({
       bookings: state.bookings.map((b) => (b.id === id ? { ...b, ...updatedFields } : b)),
     }));
   },
-  deleteBooking: (id) => {
+  deleteBooking: async (id) => {
+    await api.delete(`/bookings/${id}`);
     set((state) => ({
       bookings: state.bookings.filter((b) => b.id !== id),
     }));
