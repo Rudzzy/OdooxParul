@@ -5,6 +5,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 import enum
 import uuid
+from datetime import datetime
 
 from app.database import Base
 
@@ -189,6 +190,7 @@ class Order(Base):
     subtotal = Column(Float, default=0.0)
     tax = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
+    timestamp = Column(String, default=lambda: datetime.utcnow().isoformat())
 
 
 # ─── KDS (Kitchen Display System) ────────────────────────────────────────────

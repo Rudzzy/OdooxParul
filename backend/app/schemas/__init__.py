@@ -169,6 +169,7 @@ class OrderOut(BaseModel):
     subtotal: float
     tax: float
     total: float
+    timestamp: Optional[str] = None
     class Config:
         from_attributes = True
 
