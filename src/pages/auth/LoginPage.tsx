@@ -55,7 +55,7 @@ export default function LoginPage() {
       setIsLoading(false);
       if (email === "admin" && password === "admin") {
         login("mock-admin-token-123", "admin");
-        navigate("/admin/dashboard");
+        navigate("/admin/products");
       } else {
         toast.error("Invalid credentials");
         triggerErrorShake();
