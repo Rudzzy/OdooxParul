@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  Search, Plus, Minus, X, CheckCircle2, Banknote, QrCode, CreditCard, Loader2, Printer, LayoutDashboard, User, Percent, FilePlus, ArrowRightCircle
-} from "lucide-react";
+import { Search, Plus, Minus, X, Info, Utensils, CheckCircle2, Users, ArrowRightCircle, FilePlus, User, Percent, LayoutDashboard, Printer, Loader2, CreditCard, QrCode, Banknote } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
