@@ -1,6 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import HamburgerMenu from "../components/HamburgerMenu";
-import GlobalDesktopSidebar from "../components/GlobalDesktopSidebar";
 import { 
   LayoutDashboard, 
   UtensilsCrossed, 
@@ -34,7 +33,6 @@ export default function POSLayout() {
 
   return (
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
-      <GlobalDesktopSidebar />
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Header */}
         <header className="flex h-16 items-center justify-between border-b bg-white px-6 shrink-0 shadow-sm">
