@@ -43,13 +43,22 @@ const mainModules = [
   }
 ];
 
+const getIconsForWord = (index: number) => {
+  if (index === 0) return [Utensils, Utensils, Receipt, Utensils, Receipt]; // Restaurant
+  if (index === 1) return [Coffee, Coffee, Receipt, Coffee, Coffee]; // Cafe
+  if (index === 2) return [Star, Star, Utensils, Star, Star]; // Fine Dining
+  return [Coffee, Utensils, Star, Coffee, Receipt];
+};
+
+const WORDS = ["Restaurant", "Cafe", "Fine Dining"];
+
 export default function LandingPage() {
-  const words = ["Restaurant", "Cafe", "Food Truck", "Fine Dining"];
   const [currentWord, setCurrentWord] = useState(0);
+  const safeCurrentWord = currentWord >= WORDS.length ? 0 : currentWord;
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentWord((prev) => (prev + 1) % words.length);
+      setCurrentWord((prev) => (prev + 1) % WORDS.length);
     }, 3000);
     return () => clearInterval(interval);
   }, []);
@@ -101,14 +110,14 @@ export default function LandingPage() {
             <span>Next-Gen{" "}
             <AnimatePresence mode="wait">
               <motion.span
-                key={currentWord}
+                key={safeCurrentWord}
                 initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
                 transition={{ duration: 0.3 }}
                 className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-[#C8813A] to-[#A0622A]"
               >
-                {words[currentWord]}
+                {WORDS[safeCurrentWord]}
               </motion.span>
             </AnimatePresence>
             </span>
@@ -195,41 +204,36 @@ export default function LandingPage() {
         />
 
         {/* Floating Cafe Icons */}
-        <motion.div 
-          animate={{ y: ["0vh", "30vh", "0vh"], x: ["0vw", "10vw", "0vw"], opacity: [0.1, 0.3, 0.1], rotate: [0, 90, 180] }} 
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }} 
-          className="absolute top-[10%] left-[10%] text-[#C8813A]"
-        >
-          <Coffee size={64} />
-        </motion.div>
-        <motion.div 
-          animate={{ y: ["30vh", "0vh", "30vh"], x: ["0vw", "-15vw", "0vw"], opacity: [0.1, 0.4, 0.1], rotate: [0, -90, -180] }} 
-          transition={{ duration: 30, repeat: Infinity, ease: "linear", delay: 2 }} 
-          className="absolute top-[20%] right-[15%] text-[#A0622A]"
-        >
-          <Utensils size={56} />
-        </motion.div>
-        <motion.div 
-          animate={{ y: ["0vh", "-40vh", "0vh"], x: ["0vw", "20vw", "0vw"], opacity: [0.15, 0.5, 0.15], scale: [1, 1.5, 1], rotate: [0, 120, 240] }} 
-          transition={{ duration: 22, repeat: Infinity, ease: "linear", delay: 5 }} 
-          className="absolute bottom-[10%] left-[30%] text-[#C8813A]"
-        >
-          <Star size={48} />
-        </motion.div>
-        <motion.div 
-          animate={{ y: ["-30vh", "30vh", "-30vh"], x: ["0vw", "-10vw", "0vw"], opacity: [0.1, 0.3, 0.1], rotate: [0, -45, -90] }} 
-          transition={{ duration: 28, repeat: Infinity, ease: "linear", delay: 8 }} 
-          className="absolute bottom-[20%] right-[30%] text-[#A0622A]"
-        >
-          <Coffee size={50} />
-        </motion.div>
-        <motion.div 
-          animate={{ y: ["30vh", "-10vh", "30vh"], x: ["0vw", "15vw", "0vw"], opacity: [0.1, 0.4, 0.1], rotate: [0, 180, 360] }} 
-          transition={{ duration: 35, repeat: Infinity, ease: "linear", delay: 1 }} 
-          className="absolute top-[40%] left-[5%] text-[#C8813A]"
-        >
-          <Receipt size={60} />
-        </motion.div>
+        {[
+          { top: "10%", left: "10%", color: "text-[#C8813A]", size: 64, y: ["0vh", "30vh", "0vh"], x: ["0vw", "10vw", "0vw"], rotate: [0, 90, 180], dur: 25, delay: 0 },
+          { top: "20%", right: "15%", color: "text-[#A0622A]", size: 56, y: ["30vh", "0vh", "30vh"], x: ["0vw", "-15vw", "0vw"], rotate: [0, -90, -180], dur: 30, delay: 2 },
+          { bottom: "10%", left: "30%", color: "text-[#C8813A]", size: 48, y: ["0vh", "-40vh", "0vh"], x: ["0vw", "20vw", "0vw"], rotate: [0, 120, 240], dur: 22, delay: 5, scale: [1, 1.5, 1] },
+          { bottom: "20%", right: "30%", color: "text-[#A0622A]", size: 50, y: ["-30vh", "30vh", "-30vh"], x: ["0vw", "-10vw", "0vw"], rotate: [0, -45, -90], dur: 28, delay: 8 },
+          { top: "40%", left: "5%", color: "text-[#C8813A]", size: 60, y: ["30vh", "-10vh", "30vh"], x: ["0vw", "15vw", "0vw"], rotate: [0, 180, 360], dur: 35, delay: 1 }
+        ].map((anim, idx) => {
+          const IconComponent = getIconsForWord(safeCurrentWord)[idx];
+          return (
+            <motion.div 
+              key={`float-${idx}`}
+              animate={{ y: anim.y, x: anim.x, opacity: anim.scale ? [0.15, 0.5, 0.15] : [0.1, 0.4, 0.1], rotate: anim.rotate, scale: anim.scale || 1 }} 
+              transition={{ duration: anim.dur, repeat: Infinity, ease: "linear", delay: anim.delay }} 
+              className={`absolute ${anim.color}`}
+              style={{ top: anim.top, left: anim.left, right: anim.right, bottom: anim.bottom }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentWord}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <IconComponent size={anim.size} />
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );
