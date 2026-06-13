@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
+import HamburgerMenu from "../components/HamburgerMenu";
 import { 
   LayoutDashboard, 
   UtensilsCrossed, 
@@ -31,11 +32,13 @@ export default function POSLayout() {
   ];
 
   return (
-    <div className="flex h-screen w-full flex-col bg-slate-50 overflow-hidden">
-      {/* Header */}
-      <header className="flex h-16 items-center justify-between border-b bg-white px-6 shrink-0 shadow-sm">
+    <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
+      <div className="flex flex-col flex-1 overflow-hidden">
+        {/* Header */}
+        <header className="flex h-16 items-center justify-between border-b bg-white px-6 shrink-0 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+          <HamburgerMenu />
+          <div className="flex items-center gap-2 ml-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 text-white font-bold text-xl">
               O
             </div>
@@ -111,6 +114,7 @@ export default function POSLayout() {
           <Outlet />
         </main>
       </div>
+    </div>
     </div>
   );
 }
