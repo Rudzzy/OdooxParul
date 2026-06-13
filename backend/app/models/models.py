@@ -14,6 +14,17 @@ def gen_id():
     return str(uuid.uuid4())
 
 
+# ─── CRM (Customers) ─────────────────────────────────────────────────────────
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+
+
 # ─── Auth ────────────────────────────────────────────────────────────────────
 
 class UserRole(str, enum.Enum):
@@ -190,7 +201,7 @@ class Order(Base):
     subtotal = Column(Float, default=0.0)
     tax = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
-    timestamp = Column(String, default=lambda: datetime.datetime.now().isoformat())
+    timestamp = Column(String, default=lambda: datetime.now().isoformat())
 
 
 # ─── KDS (Kitchen Display System) ────────────────────────────────────────────
@@ -223,6 +234,7 @@ class KDSOrderItem(Base):
     quantity = Column(Integer, default=1)
     prepared = Column(Boolean, default=False)
     categoryId = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
 
     kds_order = relationship("KDSOrder", back_populates="items")
 

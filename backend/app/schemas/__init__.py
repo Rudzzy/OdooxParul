@@ -3,6 +3,19 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 
 
+# ─── CRM (Customers) ─────────────────────────────────────────────────────────
+
+class CustomerCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+class CustomerOut(CustomerCreate):
+    id: str
+    class Config:
+        from_attributes = True
+
+
 # ─── Auth ────────────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
@@ -152,6 +165,7 @@ class OrderItem(BaseModel):
     name: str
     price: float
     quantity: int
+    notes: Optional[str] = None
 
 class OrderCreate(BaseModel):
     tableId: Optional[str] = None
@@ -181,6 +195,7 @@ class KDSOrderItemCreate(BaseModel):
     name: str
     quantity: int = 1
     categoryId: Optional[str] = None
+    notes: Optional[str] = None
 
 class KDSOrderItemOut(BaseModel):
     id: str
@@ -188,6 +203,7 @@ class KDSOrderItemOut(BaseModel):
     quantity: int
     prepared: bool
     categoryId: Optional[str] = None
+    notes: Optional[str] = None
     class Config:
         from_attributes = True
 

@@ -72,8 +72,8 @@ def create_kds_order(
                     kdsOrderId=kds_order.id,
                     name=item_data.name,
                     quantity=item_data.quantity,
-                    prepared=False,
                     categoryId=item_data.categoryId,
+                    notes=item_data.notes,
                 )
                 kds_order.items.append(item)
     else:
@@ -96,8 +96,8 @@ def create_kds_order(
                 kdsOrderId=kds_order.id,
                 name=item_data.name,
                 quantity=item_data.quantity,
-                prepared=False,
                 categoryId=item_data.categoryId,
+                notes=item_data.notes,
             )
             kds_order.items.append(item)
 

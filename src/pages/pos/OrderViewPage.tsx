@@ -12,6 +12,7 @@ import { useFloorStore } from "@/store/floorStore";
 import { useProductStore } from "@/store/productStore";
 import { useKdsStore } from "@/store/kdsStore";
 import api from "@/lib/api";
+import { usePosStore, OrderItem } from "@/store/posStore";
 
 // Fallback Mock Data (used if API returns nothing)
 const fallbackCategories = ["All", "Starters", "Main Course", "Pizza", "Burger", "Pasta", "Drinks", "Desserts"];
@@ -40,12 +41,7 @@ interface MenuItem {
   image: string;
 }
 
-interface OrderItem {
-  id: string;
-  menuItem: MenuItem;
-  quantity: number;
-  sentQuantity: number;
-}
+// OrderItem is now imported from posStore
 
 type PaymentMethod = "CASH" | "UPI" | "CARD" | null;
 
@@ -134,7 +130,20 @@ export default function OrderViewPage() {
   // Left Panel State
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+
+  // Pos Store State
+  const session = usePosStore(state => state.sessions[tableId || ""]) || {
+    tableId: tableId || "",
+    status: "Available",
+    customer: null,
+    orderItems: []
+  };
+  const updateSession = usePosStore(state => state.updateSession);
+  const clearSession = usePosStore(state => state.clearSession);
+
+  const orderItems = session.orderItems;
+  const selectedCustomer = session.customer;
+
   const [orderId, setOrderId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -156,10 +165,13 @@ export default function OrderViewPage() {
                 image: ""
               },
               quantity: i.quantity,
-              notes: i.notes || "",
+              instruction: i.notes || "",
               sentQuantity: i.quantity // Already in kitchen
             }));
-            setOrderItems(mappedItems);
+            // Populate if store is empty
+            if (session.orderItems.length === 0) {
+              updateSession(tableId || "", { orderItems: mappedItems });
+            }
           }
         }
       } catch (err) {
@@ -169,7 +181,7 @@ export default function OrderViewPage() {
     if (tableId) {
       fetchExistingOrder();
     }
-  }, [tableId]);
+  }, [tableId]); // Note: session.orderItems.length intentionally omitted from deps to prevent loop
 
   // Right Panel State (Toggle between Cart and Payment)
   const [isPaymentMode, setIsPaymentMode] = useState(false);
@@ -180,13 +192,26 @@ export default function OrderViewPage() {
   
   // Kitchen State
   const [isSendingToKitchen, setIsSendingToKitchen] = useState(false);
+  const [isConfirmingSend, setIsConfirmingSend] = useState(false);
   const [isKitchenSent, setIsKitchenSent] = useState(false);
 
   // Backend Order Tracking
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
 
   // Dialog States
-  const [customers, setCustomers] = useState(mockCustomers);
+  const [customers, setCustomers] = useState<{id: string, name: string, email: string, phone: string}[]>([]);
+
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const res = await api.get("/customers");
+        setCustomers(res.data);
+      } catch (err) {
+        setCustomers(mockCustomers);
+      }
+    };
+    fetchCustomers();
+  }, []);
   const [isCouponOpen, setIsCouponOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   
@@ -196,11 +221,23 @@ export default function OrderViewPage() {
   const [isCustomerOpen, setIsCustomerOpen] = useState(false);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<{ id: string; name: string; email: string; phone: string } | null>(null);
 
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+
+  const [isInstructionOpen, setIsInstructionOpen] = useState(false);
+  const [instructionItemId, setInstructionItemId] = useState("");
+  const [instructionText, setInstructionText] = useState("");
+
+  // Customer Prompt on empty table
+  useEffect(() => {
+    if (tableId && !session.customer && orderItems.length === 0) {
+      setIsCustomerOpen(true);
+    }
+  }, [tableId]);
+
+
 
   // Filter Customers
   const filteredCustomers = customers.filter(c => 
@@ -225,30 +262,48 @@ export default function OrderViewPage() {
   // Cart Functions
   const handleAddItem = (menuItem: MenuItem) => {
     setIsKitchenSent(false);
-    setOrderItems(prev => {
-      const existing = prev.find(item => item.menuItem.id === menuItem.id);
-      if (existing) {
-        return prev.map(item => item.menuItem.id === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item);
-      }
-      return [...prev, { id: Math.random().toString(), menuItem, quantity: 1, sentQuantity: 0 }];
-    });
+    setIsConfirmingSend(false);
+    const existing = orderItems.find(item => item.menuItem.id === menuItem.id);
+    if (existing) {
+      updateSession(tableId || "", {
+        orderItems: orderItems.map(item => item.menuItem.id === menuItem.id ? { ...item, quantity: item.quantity + 1 } : item)
+      });
+    } else {
+      updateSession(tableId || "", {
+        orderItems: [...orderItems, { id: Math.random().toString(), menuItem, quantity: 1, sentQuantity: 0 }]
+      });
+    }
   };
 
   const handleUpdateQuantity = (id: string, delta: number) => {
     setIsKitchenSent(false);
-    setOrderItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const newQty = item.quantity + delta;
-        const newSentQty = Math.min(item.sentQuantity, newQty);
-        return newQty > 0 ? { ...item, quantity: newQty, sentQuantity: newSentQty } : item;
-      }
-      return item;
-    }).filter(item => item.quantity > 0));
+    setIsConfirmingSend(false);
+    updateSession(tableId || "", {
+      orderItems: orderItems.map(item => {
+        if (item.id === id) {
+          const newQty = item.quantity + delta;
+          const newSentQty = Math.min(item.sentQuantity, newQty);
+          return newQty > 0 ? { ...item, quantity: newQty, sentQuantity: newSentQty } : item;
+        }
+        return item;
+      }).filter(item => item.quantity > 0)
+    });
   };
 
   const handleRemoveItem = (id: string) => {
     setIsKitchenSent(false);
-    setOrderItems(prev => prev.filter(item => item.id !== id));
+    setIsConfirmingSend(false);
+    updateSession(tableId || "", {
+      orderItems: orderItems.filter(item => item.id !== id)
+    });
+  };
+
+  const saveInstruction = () => {
+    updateSession(tableId || "", {
+      orderItems: orderItems.map(item => item.id === instructionItemId ? { ...item, instruction: instructionText } : item)
+    });
+    setIsInstructionOpen(false);
+    setInstructionText("");
   };
 
   // Numpad Functions
@@ -272,7 +327,8 @@ export default function OrderViewPage() {
           productId: item.menuItem.id,
           name: item.menuItem.name,
           price: item.menuItem.price,
-          quantity: item.quantity
+          quantity: item.quantity,
+          notes: item.instruction || ""
         }))
       };
 
@@ -297,6 +353,11 @@ export default function OrderViewPage() {
     const unsentItems = orderItems.filter(item => item.quantity > item.sentQuantity);
     if (unsentItems.length === 0) return;
     
+    if (!isConfirmingSend) {
+      setIsConfirmingSend(true);
+      return;
+    }
+    
     setIsSendingToKitchen(true);
     
     await sendToKds({
@@ -305,7 +366,7 @@ export default function OrderViewPage() {
       items: unsentItems.map(item => ({
         name: item.menuItem.name,
         quantity: item.quantity - item.sentQuantity,
-        // Since we don't have categoryId mapping on the mock fallback, omit it for now or pass if available
+        notes: item.instruction || ""
       }))
     });
     
@@ -317,7 +378,8 @@ export default function OrderViewPage() {
           productId: item.menuItem.id,
           name: item.menuItem.name,
           price: item.menuItem.price,
-          quantity: item.quantity
+          quantity: item.quantity,
+          notes: item.instruction || ""
         })),
         subtotal,
         tax,
@@ -335,18 +397,21 @@ export default function OrderViewPage() {
       console.error("Failed to sync order with backend:", error);
     }
 
-    setOrderItems(prev => prev.map(item => ({
-      ...item,
-      sentQuantity: item.quantity
-    })));
+    updateSession(tableId || "", {
+      orderItems: orderItems.map(item => ({
+        ...item,
+        sentQuantity: item.quantity
+      }))
+    });
     
     setIsSendingToKitchen(false);
+    setIsConfirmingSend(false);
     setIsKitchenSent(true);
   };
 
   const handleNewOrder = () => {
     setPaymentSuccess(false);
-    setOrderItems([]);
+    clearSession(tableId || "");
     setOrderId(null);
     setPaymentMethod(null);
     setNumpadValue("");
@@ -486,8 +551,15 @@ export default function OrderViewPage() {
                       </div>
 
                       {/* Restored Add Instruction Button */}
-                      <div className="mt-2 text-xs text-blue-600 hover:text-blue-500 cursor-pointer font-medium">
-                        + Add Instruction
+                      <div 
+                        className="mt-2 text-xs text-blue-600 hover:text-blue-500 cursor-pointer font-medium"
+                        onClick={() => {
+                          setInstructionItemId(item.id);
+                          setInstructionText(item.instruction || "");
+                          setIsInstructionOpen(true);
+                        }}
+                      >
+                        {item.instruction ? `Instruction: ${item.instruction}` : "+ Add Instruction"}
                       </div>
                     </div>
                   ))
@@ -508,6 +580,8 @@ export default function OrderViewPage() {
                     <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending...</>
                   ) : orderItems.filter(i => i.quantity > i.sentQuantity).length === 0 && orderItems.length > 0 ? (
                     <><CheckCircle2 className="mr-2 h-5 w-5" /> Sent to Kitchen</>
+                  ) : isConfirmingSend ? (
+                    "Confirm"
                   ) : (
                     "Send to Kitchen"
                   )}
@@ -726,7 +800,7 @@ export default function OrderViewPage() {
                 </Button>
                 <Button variant="outline" className="h-12 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold" onClick={() => {
                   setPaymentSuccess(false);
-                  setOrderItems([]);
+                  clearSession(tableId || "");
                   setOrderId(null);
                   setPaymentMethod(null);
                   setNumpadValue("");
@@ -824,7 +898,7 @@ export default function OrderViewPage() {
                     key={customer.id} 
                     className="p-4 bg-white border border-slate-200 rounded-lg shadow-sm hover:border-blue-500 hover:shadow-md cursor-pointer transition-all"
                     onClick={() => {
-                      setSelectedCustomer(customer);
+                      updateSession(tableId || "", { customer });
                       setIsCustomerOpen(false);
                     }}
                   >
@@ -873,20 +947,24 @@ export default function OrderViewPage() {
               </Button>
               <Button 
                 className="bg-blue-600 hover:bg-blue-700 text-white" 
-                onClick={() => {
-                  const newCust = {
-                    id: "c" + Date.now(),
-                    name: newCustomerName,
-                    email: newCustomerEmail,
-                    phone: newCustomerPhone
-                  };
-                  setCustomers(prev => [...prev, newCust]);
-                  setSelectedCustomer(newCust);
-                  setNewCustomerName("");
-                  setNewCustomerEmail("");
-                  setNewCustomerPhone("");
-                  setIsAddCustomerOpen(false);
-                  setIsCustomerOpen(false);
+                onClick={async () => {
+                  try {
+                    const res = await api.post("/customers", {
+                      name: newCustomerName,
+                      email: newCustomerEmail,
+                      phone: newCustomerPhone
+                    });
+                    const newCust = res.data;
+                    setCustomers(prev => [...prev, newCust]);
+                    updateSession(tableId || "", { customer: newCust });
+                    setNewCustomerName("");
+                    setNewCustomerEmail("");
+                    setNewCustomerPhone("");
+                    setIsAddCustomerOpen(false);
+                    setIsCustomerOpen(false);
+                  } catch (err) {
+                    console.error("Failed to create customer", err);
+                  }
                 }}
               >
                 Save Customer
@@ -896,6 +974,30 @@ export default function OrderViewPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Instruction Dialog */}
+      <Dialog open={isInstructionOpen} onOpenChange={setIsInstructionOpen}>
+        <DialogContent className="sm:max-w-md bg-white border-slate-200 text-slate-900 shadow-xl">
+          <div className="p-6">
+            <h2 className="text-xl font-bold mb-4">Add Instruction</h2>
+            <div className="space-y-4">
+              <Input 
+                placeholder="e.g. Less spicy, Extra cheese..." 
+                className="bg-white border-slate-200 text-slate-900"
+                value={instructionText}
+                onChange={(e) => setInstructionText(e.target.value)}
+              />
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900" onClick={() => setIsInstructionOpen(false)}>
+                  Cancel
+                </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={saveInstruction}>
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
