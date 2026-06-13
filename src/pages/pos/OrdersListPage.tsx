@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import api from "@/lib/api";
 
-type OrderStatus = "Pending" | "Preparing" | "Ready" | "Served" | "Payment Pending";
+type OrderStatus = "open" | "paid" | "cancelled" | "Pending";
 
 interface Order {
   id: string;
@@ -20,16 +20,15 @@ interface Order {
 
 const getStatusColor = (status: OrderStatus) => {
   switch (status) {
-    case "Pending": return "bg-gray-100 text-gray-800 hover:bg-gray-200";
-    case "Preparing": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
-    case "Ready": return "bg-green-100 text-green-800 hover:bg-green-200";
-    case "Served": return "bg-blue-100 text-blue-800 hover:bg-blue-200";
-    case "Payment Pending": return "bg-purple-100 text-purple-800 hover:bg-purple-200";
+    case "open": return "bg-blue-100 text-blue-800 hover:bg-blue-200";
+    case "paid": return "bg-green-100 text-green-800 hover:bg-green-200";
+    case "cancelled": return "bg-red-100 text-red-800 hover:bg-red-200";
+    case "Pending": return "bg-yellow-100 text-yellow-800 hover:bg-yellow-200";
     default: return "bg-slate-100 text-slate-800";
   }
 };
 
-const filters = ["All Orders", "Pending", "Preparing", "Ready", "Served", "Payment Pending"];
+const filters = ["All Orders", "open", "paid", "cancelled"];
 
 export default function OrdersListPage() {
   const navigate = useNavigate();
@@ -38,16 +37,43 @@ export default function OrdersListPage() {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchOrdersAndTables = async () => {
       try {
-        const res = await api.get("/orders");
-        const backendOrders: Order[] = res.data.map((o: any, index: number) => ({
+        const [ordersRes, tablesRes, kdsRes] = await Promise.all([
+          api.get("/orders"),
+          api.get("/tables").catch(() => ({ data: [] })),
+          api.get("/kds").catch(() => ({ data: [] }))
+        ]);
+
+        const tablesMap: Record<string, string> = {};
+        tablesRes.data.forEach((t: any) => {
+          tablesMap[t.id] = t.tableNumber;
+        });
+
+        // Track which tables have a "Completed" KDS ticket
+        const completedKdsTables = new Set<string>();
+        kdsRes.data.forEach((k: any) => {
+          if (k.stage === "Completed" && k.tableId) {
+            completedKdsTables.add(k.tableId);
+          }
+        });
+        
+        // Remove from set if they have a non-completed ticket (meaning they ordered more)
+        kdsRes.data.forEach((k: any) => {
+          if (k.stage !== "Completed" && k.tableId) {
+            completedKdsTables.delete(k.tableId);
+          }
+        });
+
+        const backendOrders: Order[] = ordersRes.data
+          .filter((o: any) => !completedKdsTables.has(o.tableId))
+          .map((o: any, index: number) => ({
           id: o.id,
           orderNumber: `ORD-${String(1001 + index).padStart(4, "0")}`,
-          tableNumber: o.tableId || "N/A",
-          totalValue: o.totalAmount || 0,
-          createdTime: o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
-          status: (o.status || "Pending") as OrderStatus,
+          tableNumber: tablesMap[o.tableId] || o.tableId || "N/A",
+          totalValue: o.total || 0,
+          createdTime: o.timestamp ? new Date(o.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
+          status: (o.status || "open") as OrderStatus,
         }));
         setOrders(backendOrders);
       } catch {
@@ -55,7 +81,7 @@ export default function OrdersListPage() {
         setOrders([]);
       }
     };
-    fetchOrders();
+    fetchOrdersAndTables();
   }, []);
 
   const filteredOrders = orders.filter((order) => {

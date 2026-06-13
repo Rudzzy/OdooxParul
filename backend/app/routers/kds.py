@@ -62,15 +62,20 @@ def create_kds_order(
             kds_order.stage = KDSStage.to_cook
 
         for item_data in payload.items:
-            item = KDSOrderItem(
-                id=gen_id(),
-                kdsOrderId=kds_order.id,
-                name=item_data.name,
-                quantity=item_data.quantity,
-                prepared=False,
-                categoryId=item_data.categoryId,
-            )
-            kds_order.items.append(item)
+            existing_item = next((i for i in kds_order.items if i.name == item_data.name), None)
+            if existing_item:
+                existing_item.quantity += item_data.quantity
+                existing_item.prepared = False # reset prepared state since new ones arrived
+            else:
+                item = KDSOrderItem(
+                    id=gen_id(),
+                    kdsOrderId=kds_order.id,
+                    name=item_data.name,
+                    quantity=item_data.quantity,
+                    prepared=False,
+                    categoryId=item_data.categoryId,
+                )
+                kds_order.items.append(item)
     else:
         # Auto-generate ticket number from current count
         count = db.query(KDSOrder).count()

@@ -135,6 +135,41 @@ export default function OrderViewPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [orderId, setOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchExistingOrder = async () => {
+      try {
+        const res = await api.get("/orders");
+        const existing = res.data.find((o: any) => o.tableId === tableId && o.status === "open");
+        if (existing) {
+          setOrderId(existing.id);
+          if (existing.items && existing.items.length > 0) {
+            const mappedItems = existing.items.map((i: any, idx: number) => ({
+              id: i.id || `ext-${idx}`,
+              menuItem: {
+                id: i.productId || "unknown",
+                name: i.name,
+                price: i.price,
+                category: "Unknown",
+                isVeg: false,
+                image: ""
+              },
+              quantity: i.quantity,
+              notes: i.notes || "",
+              sentQuantity: i.quantity // Already in kitchen
+            }));
+            setOrderItems(mappedItems);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch existing order:", err);
+      }
+    };
+    if (tableId) {
+      fetchExistingOrder();
+    }
+  }, [tableId]);
 
   // Right Panel State (Toggle between Cart and Payment)
   const [isPaymentMode, setIsPaymentMode] = useState(false);
@@ -220,8 +255,30 @@ export default function OrderViewPage() {
     else setNumpadValue(prev => prev + val);
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     setIsProcessing(true);
+    
+    try {
+      if (orderId) {
+        // Mark order as paid in the backend
+        await api.put(`/orders/${orderId}`, {
+          tableId: tableId,
+          items: orderItems.map(item => ({
+            productId: item.menuItem.id,
+            name: item.menuItem.name,
+            price: item.menuItem.price,
+            quantity: item.quantity
+          })),
+          subtotal,
+          tax,
+          total: grandTotal,
+          status: "paid"
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update order status to paid:", error);
+    }
+
     setTimeout(() => {
       setIsProcessing(false);
       setPaymentSuccess(true);
@@ -244,6 +301,32 @@ export default function OrderViewPage() {
       }))
     });
     
+    // Update backend order
+    try {
+      const orderPayload = {
+        tableId: tableId,
+        items: orderItems.map(item => ({
+          productId: item.menuItem.id,
+          name: item.menuItem.name,
+          price: item.menuItem.price,
+          quantity: item.quantity
+        })),
+        subtotal,
+        tax,
+        total: grandTotal,
+        status: "open"
+      };
+
+      if (orderId) {
+        await api.put(`/orders/${orderId}`, orderPayload);
+      } else {
+        const res = await api.post("/orders", orderPayload);
+        setOrderId(res.data.id);
+      }
+    } catch (error) {
+      console.error("Failed to sync order with backend:", error);
+    }
+
     setOrderItems(prev => prev.map(item => ({
       ...item,
       sentQuantity: item.quantity
@@ -256,6 +339,7 @@ export default function OrderViewPage() {
   const handleNewOrder = () => {
     setPaymentSuccess(false);
     setOrderItems([]);
+    setOrderId(null);
     setPaymentMethod(null);
     setNumpadValue("");
     setIsPaymentMode(false);
@@ -634,6 +718,7 @@ export default function OrderViewPage() {
                 <Button variant="outline" className="h-12 border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold" onClick={() => {
                   setPaymentSuccess(false);
                   setOrderItems([]);
+                  setOrderId(null);
                   setPaymentMethod(null);
                   setNumpadValue("");
                   setIsPaymentMode(false);

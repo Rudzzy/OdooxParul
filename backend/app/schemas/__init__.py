@@ -160,6 +160,7 @@ class OrderCreate(BaseModel):
     tax: float = 0.0
     total: float = 0.0
     status: str = "open"
+    timestamp: Optional[str] = None
 
 class OrderOut(BaseModel):
     id: str
@@ -169,6 +170,7 @@ class OrderOut(BaseModel):
     subtotal: float
     tax: float
     total: float
+    timestamp: Optional[str] = None
     class Config:
         from_attributes = True
 
