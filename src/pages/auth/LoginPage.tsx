@@ -61,7 +61,7 @@ export default function LoginPage() {
       }
       const data = await res.json();
       login(data.token, data.user.role === "admin" ? "admin" : "waiter");
-      navigate("/admin/dashboard");
+      navigate("/admin/products");
     } catch {
       toast.error("Invalid credentials");
       triggerErrorShake();
