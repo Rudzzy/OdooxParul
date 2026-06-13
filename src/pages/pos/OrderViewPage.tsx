@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Search, Plus, Minus, X, Info, Utensils, CheckCircle2 } from "lucide-react";
+import { Search, Plus, Minus, X, Info, Utensils, CheckCircle2, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
