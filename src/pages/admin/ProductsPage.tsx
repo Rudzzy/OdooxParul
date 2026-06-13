@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 
@@ -29,9 +29,14 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 
 export default function ProductsPage() {
-  const { products, categories, deleteProduct } = useProductStore();
+  const { products, categories, deleteProduct, fetchCategories, fetchProducts } = useProductStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {

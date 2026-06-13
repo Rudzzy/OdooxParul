@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import api from "../lib/api";
 
 export type DiscountType = "percentage" | "fixed";
 export type ConditionType = "min_qty" | "min_amount" | "none";
@@ -30,27 +31,28 @@ export type Promotion = {
 interface PromotionState {
   coupons: Coupon[];
   promotions: Promotion[];
-  addCoupon: (coupon: Omit<Coupon, "id">) => Coupon;
-  updateCoupon: (id: string, coupon: Partial<Coupon>) => void;
-  deleteCoupon: (id: string) => void;
-  addPromotion: (promo: Omit<Promotion, "id">) => Promotion;
-  updatePromotion: (id: string, promo: Partial<Promotion>) => void;
-  deletePromotion: (id: string) => void;
+  fetchCoupons: () => Promise<void>;
+  fetchPromotions: () => Promise<void>;
+  addCoupon: (coupon: Omit<Coupon, "id">) => Promise<Coupon>;
+  updateCoupon: (id: string, coupon: Partial<Coupon>) => Promise<void>;
+  deleteCoupon: (id: string) => Promise<void>;
+  addPromotion: (promo: Omit<Promotion, "id">) => Promise<Promotion>;
+  updatePromotion: (id: string, promo: Partial<Promotion>) => Promise<void>;
+  deletePromotion: (id: string) => Promise<void>;
   checkExpirations: () => void;
 }
 
-const initialCoupons: Coupon[] = [
-  { id: "1", code: "WELCOME10", discountType: "percentage", discountValue: 10, isActive: true, conditionType: "none" },
-  { id: "2", code: "SAVE50", discountType: "fixed", discountValue: 50, isActive: true, conditionType: "min_amount", conditionValue: 500, expiresAt: new Date(Date.now() + 86400000).toISOString().slice(0, 16) },
-];
-
-const initialPromotions: Promotion[] = [
-  { id: "1", name: "Weekend Special", appliesTo: "order", conditionType: "min_amount", conditionValue: 499, discountType: "percentage", discountValue: 10, isActive: true },
-];
-
 export const usePromotionStore = create<PromotionState>((set) => ({
-  coupons: initialCoupons,
-  promotions: initialPromotions,
+  coupons: [],
+  promotions: [],
+  fetchCoupons: async () => {
+    const res = await api.get("/coupons");
+    set({ coupons: res.data });
+  },
+  fetchPromotions: async () => {
+    const res = await api.get("/promotions");
+    set({ promotions: res.data });
+  },
   checkExpirations: () => {
     set((state) => {
       const now = new Date();
@@ -79,32 +81,61 @@ export const usePromotionStore = create<PromotionState>((set) => ({
       return state;
     });
   },
-  addCoupon: (coupon) => {
-    const newCoupon = { ...coupon, id: Math.random().toString(36).substring(2, 9) };
+  addCoupon: async (coupon) => {
+    const res = await api.post("/coupons", coupon);
+    const newCoupon = res.data;
     set((state) => ({ coupons: [...state.coupons, newCoupon] }));
     return newCoupon;
   },
-  updateCoupon: (id, updatedFields) => {
+  updateCoupon: async (id, updatedFields) => {
+    const current = usePromotionStore.getState().coupons.find((c) => c.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updatedFields };
+    await api.put(`/coupons/${id}`, {
+      code: merged.code,
+      discountType: merged.discountType,
+      discountValue: merged.discountValue,
+      isActive: merged.isActive,
+      conditionType: merged.conditionType,
+      conditionValue: merged.conditionValue ?? null,
+      expiresAt: merged.expiresAt ?? null,
+    });
     set((state) => ({
       coupons: state.coupons.map((c) => (c.id === id ? { ...c, ...updatedFields } : c)),
     }));
   },
-  deleteCoupon: (id) => {
+  deleteCoupon: async (id) => {
+    await api.delete(`/coupons/${id}`);
     set((state) => ({
       coupons: state.coupons.filter((c) => c.id !== id),
     }));
   },
-  addPromotion: (promo) => {
-    const newPromo = { ...promo, id: Math.random().toString(36).substring(2, 9) };
+  addPromotion: async (promo) => {
+    const res = await api.post("/promotions", promo);
+    const newPromo = res.data;
     set((state) => ({ promotions: [...state.promotions, newPromo] }));
     return newPromo;
   },
-  updatePromotion: (id, updatedFields) => {
+  updatePromotion: async (id, updatedFields) => {
+    const current = usePromotionStore.getState().promotions.find((p) => p.id === id);
+    if (!current) return;
+    const merged = { ...current, ...updatedFields };
+    await api.put(`/promotions/${id}`, {
+      name: merged.name,
+      appliesTo: merged.appliesTo,
+      conditionType: merged.conditionType,
+      conditionValue: merged.conditionValue,
+      discountType: merged.discountType,
+      discountValue: merged.discountValue,
+      isActive: merged.isActive,
+      activeDays: merged.activeDays ?? null,
+    });
     set((state) => ({
       promotions: state.promotions.map((p) => (p.id === id ? { ...p, ...updatedFields } : p)),
     }));
   },
-  deletePromotion: (id) => {
+  deletePromotion: async (id) => {
+    await api.delete(`/promotions/${id}`);
     set((state) => ({
       promotions: state.promotions.filter((p) => p.id !== id),
     }));

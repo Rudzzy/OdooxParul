@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Search, Filter, Clock, Receipt } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, Clock, Receipt } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import api from "@/lib/api";
 
 type OrderStatus = "Pending" | "Preparing" | "Ready" | "Served" | "Payment Pending";
 
@@ -17,14 +18,6 @@ interface Order {
   createdTime: string;
   status: OrderStatus;
 }
-
-const mockOrders: Order[] = [
-  { id: "o1", orderNumber: "ORD-1001", tableNumber: "3", guests: 2, totalValue: 1250, createdTime: "12:30 PM", status: "Preparing" },
-  { id: "o2", orderNumber: "ORD-1002", tableNumber: "7", guests: 3, totalValue: 850, createdTime: "12:45 PM", status: "Ready" },
-  { id: "o3", orderNumber: "ORD-1003", tableNumber: "10", guests: 2, totalValue: 450, createdTime: "01:10 PM", status: "Pending" },
-  { id: "o4", orderNumber: "ORD-1004", tableNumber: "4", guests: 6, totalValue: 3400, createdTime: "11:30 AM", status: "Payment Pending" },
-  { id: "o5", orderNumber: "ORD-1005", tableNumber: "11", guests: 4, totalValue: 2100, createdTime: "11:45 AM", status: "Payment Pending" },
-];
 
 const getStatusColor = (status: OrderStatus) => {
   switch (status) {
@@ -43,8 +36,31 @@ export default function OrdersListPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All Orders");
+  const [orders, setOrders] = useState<Order[]>([]);
 
-  const filteredOrders = mockOrders.filter((order) => {
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await api.get("/orders");
+        const backendOrders: Order[] = res.data.map((o: any, index: number) => ({
+          id: o.id,
+          orderNumber: `ORD-${String(1001 + index).padStart(4, "0")}`,
+          tableNumber: o.tableId || "N/A",
+          guests: o.guests || 0,
+          totalValue: o.totalAmount || 0,
+          createdTime: o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
+          status: (o.status || "Pending") as OrderStatus,
+        }));
+        setOrders(backendOrders);
+      } catch {
+        // If no orders endpoint or it fails, show empty
+        setOrders([]);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  const filteredOrders = orders.filter((order) => {
     const matchesSearch = 
       order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) || 
       order.tableNumber.includes(searchQuery);

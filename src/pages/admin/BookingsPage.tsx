@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -99,8 +99,14 @@ type BookingFormValues = z.infer<typeof bookingSchema>;
 type DateFilter = "today" | "tomorrow" | "this_week";
 
 export default function BookingsPage() {
-  const { bookings, addBooking, updateBooking, deleteBooking } = useBookingStore();
-  const { tables, floors } = useFloorStore();
+  const { bookings, addBooking, updateBooking, deleteBooking, fetchBookings } = useBookingStore();
+  const { tables, floors, fetchFloors, fetchTables } = useFloorStore();
+
+  useEffect(() => {
+    fetchBookings();
+    fetchFloors();
+    fetchTables();
+  }, []);
 
   const [dateFilter, setDateFilter] = useState<DateFilter>("today");
   const [isModalOpen, setIsModalOpen] = useState(false);

@@ -61,7 +61,12 @@ type ProductFormValues = z.infer<typeof formSchema>;
 export default function ProductFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { products, categories, addProduct, updateProduct, addCategory } = useProductStore();
+  const { products, categories, addProduct, updateProduct, addCategory, fetchCategories, fetchProducts } = useProductStore();
+
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, []);
 
   const isEditing = Boolean(id);
   const existingProduct = products.find((p) => p.id === id);
@@ -95,20 +100,21 @@ export default function ProductFormPage() {
 
   const onSubmit = async (values: ProductFormValues) => {
     setIsSubmitting(true);
-    
-    // Simulate network request
-    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    if (isEditing && id) {
-      updateProduct(id, { ...values, description: values.description || "" });
-      toast.success("Product updated successfully");
-    } else {
-      addProduct({ ...values, description: values.description || "" });
-      toast.success("Product created successfully");
+    try {
+      if (isEditing && id) {
+        await updateProduct(id, { ...values, description: values.description || "" });
+        toast.success("Product updated successfully");
+      } else {
+        await addProduct({ ...values, description: values.description || "" });
+        toast.success("Product created successfully");
+      }
+      navigate("/admin/products");
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
-    navigate("/admin/products");
   };
 
   const handleCancel = () => {
@@ -119,13 +125,13 @@ export default function ProductFormPage() {
     }
   };
 
-  const handleCreateCategory = () => {
+  const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) return;
     
     const colors = ["bg-red-500", "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500", "bg-teal-500"];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
     
-    const newCategory = addCategory({ name: newCategoryName.trim(), color: randomColor });
+    const newCategory = await addCategory({ name: newCategoryName.trim(), color: randomColor });
     
     // Select the new category
     form.setValue("categoryId", newCategory.id, { shouldDirty: true, shouldValidate: true });

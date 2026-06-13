@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, GripVertical, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -41,7 +41,12 @@ const CATEGORY_COLORS = [
 ];
 
 export default function CategoriesPage() {
-  const { categories, products, addCategory, updateCategory, deleteCategory, reorderCategories } = useProductStore();
+  const { categories, products, addCategory, updateCategory, deleteCategory, reorderCategories, fetchCategories, fetchProducts } = useProductStore();
+
+  useEffect(() => {
+    fetchCategories();
+    fetchProducts();
+  }, []);
   
   // Drag and Drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
