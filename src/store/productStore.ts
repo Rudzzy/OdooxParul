@@ -14,6 +14,7 @@ export type Product = {
   description: string;
   isVeg: boolean;
   status: "available" | "unavailable";
+  showOnKds?: boolean;
 };
 
 interface ProductState {
