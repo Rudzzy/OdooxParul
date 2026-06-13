@@ -27,8 +27,6 @@ export default function POSLayout() {
     { to: "/pos/floor", label: "Floor View", icon: LayoutDashboard },
     { to: "/pos/orders", label: "Active Orders", icon: UtensilsCrossed },
     { to: "/kitchen", label: "Kitchen Status", icon: Clock },
-    { to: "/pos/payment/history", label: "Payment History", icon: History },
-    { to: "/pos/settings", label: "Settings", icon: Settings },
   ];
 
   return (

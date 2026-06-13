@@ -169,6 +169,8 @@ class OrderItem(BaseModel):
 
 class OrderCreate(BaseModel):
     tableId: Optional[str] = None
+    customerName: Optional[str] = None
+    customerPhone: Optional[str] = None
     items: List[OrderItem] = []
     subtotal: float = 0.0
     tax: float = 0.0
@@ -211,6 +213,7 @@ class KDSOrderCreate(BaseModel):
     customerName: Optional[str] = None
     items: List[KDSOrderItemCreate] = []
     tableId: Optional[str] = None
+    orderId: Optional[str] = None
 
 class KDSOrderOut(BaseModel):
     id: str
@@ -219,6 +222,7 @@ class KDSOrderOut(BaseModel):
     stage: str
     timestamp: str
     tableId: Optional[str] = None
+    orderId: Optional[str] = None
     items: List[KDSOrderItemOut] = []
     class Config:
         from_attributes = True

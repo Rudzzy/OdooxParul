@@ -30,6 +30,7 @@ interface KDSState {
     customerName?: string;
     items: { name: string; quantity: number; categoryId?: string; notes?: string }[];
     tableId?: string;
+    orderId?: string;
   }) => Promise<void>;
   toggleItemPrepared: (orderId: string, itemId: string) => Promise<void>;
   advanceOrderStage: (orderId: string) => Promise<void>;

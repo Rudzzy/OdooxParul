@@ -90,6 +90,12 @@ export default function OrderDetailPage() {
         ...res.data,
         status: "cancelled"
       });
+      // Also cancel associated KDS orders
+      try {
+        await api.patch(`/kds/${order!.id}/cancel`);
+      } catch (kdsErr) {
+        console.error("Failed to cancel KDS orders or none found", kdsErr);
+      }
       setOrder(prev => prev ? { ...prev, status: "cancelled" } : null);
     } catch (error) {
       console.error("Failed to cancel order:", error);

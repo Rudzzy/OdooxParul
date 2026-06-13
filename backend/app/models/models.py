@@ -196,6 +196,8 @@ class Order(Base):
 
     id = Column(String, primary_key=True, default=gen_id)
     tableId = Column(String, ForeignKey("tables.id"), nullable=True)
+    customerName = Column(String, nullable=True)
+    customerPhone = Column(String, nullable=True)
     status = Column(SAEnum(OrderStatus), default=OrderStatus.open)
     items = Column(JSON, default=list)  # [{productId, name, price, quantity}]
     subtotal = Column(Float, default=0.0)
@@ -210,6 +212,7 @@ class KDSStage(str, enum.Enum):
     to_cook = "To Cook"
     preparing = "Preparing"
     completed = "Completed"
+    cancelled = "Cancelled"
 
 
 class KDSOrder(Base):
@@ -221,6 +224,7 @@ class KDSOrder(Base):
     stage = Column(SAEnum(KDSStage), default=KDSStage.to_cook)
     timestamp = Column(String, nullable=False)
     tableId = Column(String, ForeignKey("tables.id"), nullable=True)
+    orderId = Column(String, ForeignKey("orders.id"), nullable=True)
 
     items = relationship("KDSOrderItem", back_populates="kds_order", cascade="all, delete-orphan")
 

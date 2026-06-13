@@ -50,23 +50,7 @@ export default function OrdersListPage() {
           tablesMap[t.id] = t.tableNumber;
         });
 
-        // Track which tables have a "Completed" KDS ticket
-        const completedKdsTables = new Set<string>();
-        kdsRes.data.forEach((k: any) => {
-          if (k.stage === "Completed" && k.tableId) {
-            completedKdsTables.add(k.tableId);
-          }
-        });
-        
-        // Remove from set if they have a non-completed ticket (meaning they ordered more)
-        kdsRes.data.forEach((k: any) => {
-          if (k.stage !== "Completed" && k.tableId) {
-            completedKdsTables.delete(k.tableId);
-          }
-        });
-
         const backendOrders: Order[] = ordersRes.data
-          .filter((o: any) => !completedKdsTables.has(o.tableId))
           .map((o: any, index: number) => ({
           id: o.id,
           orderNumber: `ORD-${String(1001 + index).padStart(4, "0")}`,

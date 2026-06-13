@@ -170,7 +170,16 @@ export default function OrderViewPage() {
             }));
             // Populate if store is empty
             if (session.orderItems.length === 0) {
-              updateSession(tableId || "", { orderItems: mappedItems });
+              const updates: any = { orderItems: mappedItems };
+              if (existing.customerName) {
+                updates.customer = {
+                  id: "fetched",
+                  name: existing.customerName,
+                  email: "",
+                  phone: existing.customerPhone || ""
+                };
+              }
+              updateSession(tableId || "", updates);
             }
           }
         }
@@ -196,7 +205,7 @@ export default function OrderViewPage() {
   const [isKitchenSent, setIsKitchenSent] = useState(false);
 
   // Backend Order Tracking
-  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+
 
   // Dialog States
   const [customers, setCustomers] = useState<{id: string, name: string, email: string, phone: string}[]>([]);
@@ -280,13 +289,15 @@ export default function OrderViewPage() {
     setIsConfirmingSend(false);
     updateSession(tableId || "", {
       orderItems: orderItems.map(item => {
-        if (item.id === id) {
-          const newQty = item.quantity + delta;
-          const newSentQty = Math.min(item.sentQuantity, newQty);
-          return newQty > 0 ? { ...item, quantity: newQty, sentQuantity: newSentQty } : item;
-        }
-        return item;
-      }).filter(item => item.quantity > 0)
+          if (item.id === id) {
+            let newQty = item.quantity + delta;
+            if (newQty < item.sentQuantity) {
+              newQty = item.sentQuantity;
+            }
+            return { ...item, quantity: newQty };
+          }
+          return item;
+        }).filter(item => item.quantity > 0)
     });
   };
 
@@ -319,6 +330,8 @@ export default function OrderViewPage() {
     try {
       const orderPayload = {
         tableId: tableId === 'takeaway' ? undefined : tableId,
+        customerName: selectedCustomer?.name || undefined,
+        customerPhone: selectedCustomer?.phone || undefined,
         status: "paid",
         subtotal: subtotal,
         tax: tax,
@@ -332,11 +345,11 @@ export default function OrderViewPage() {
         }))
       };
 
-      if (currentOrderId) {
-        await api.put(`/orders/${currentOrderId}`, orderPayload);
+      if (orderId) {
+        await api.put(`/orders/${orderId}`, orderPayload);
       } else {
         const res = await api.post("/orders", orderPayload);
-        setCurrentOrderId(res.data.id);
+        setOrderId(res.data.id);
       }
       
       setIsProcessing(false);
@@ -359,21 +372,13 @@ export default function OrderViewPage() {
     }
     
     setIsSendingToKitchen(true);
-    
-    await sendToKds({
-      customerName: selectedCustomer ? selectedCustomer.name : tableName,
-      tableId: tableId === 'takeaway' ? undefined : tableId,
-      items: unsentItems.map(item => ({
-        name: item.menuItem.name,
-        quantity: item.quantity - item.sentQuantity,
-        notes: item.instruction || ""
-      }))
-    });
-    
-    // Update backend order
+    // Update backend order FIRST to get the orderId
+    let currentOrderId = orderId;
     try {
       const orderPayload = {
         tableId: tableId,
+        customerName: selectedCustomer?.name || undefined,
+        customerPhone: selectedCustomer?.phone || undefined,
         items: orderItems.map(item => ({
           productId: item.menuItem.id,
           name: item.menuItem.name,
@@ -387,15 +392,28 @@ export default function OrderViewPage() {
         status: "open"
       };
 
-      if (orderId) {
-        await api.put(`/orders/${orderId}`, orderPayload);
+      if (currentOrderId) {
+        await api.put(`/orders/${currentOrderId}`, orderPayload);
       } else {
         const res = await api.post("/orders", orderPayload);
-        setOrderId(res.data.id);
+        currentOrderId = res.data.id;
+        setOrderId(currentOrderId);
       }
     } catch (error) {
       console.error("Failed to sync order with backend:", error);
     }
+    
+    // Now send to KDS with the guaranteed orderId
+    await sendToKds({
+      customerName: selectedCustomer ? selectedCustomer.name : tableName,
+      tableId: tableId === 'takeaway' ? undefined : tableId,
+      orderId: currentOrderId || undefined,
+      items: unsentItems.map(item => ({
+        name: item.menuItem.name,
+        quantity: item.quantity - item.sentQuantity,
+        notes: item.instruction || ""
+      }))
+    });
 
     updateSession(tableId || "", {
       orderItems: orderItems.map(item => ({
@@ -416,7 +434,6 @@ export default function OrderViewPage() {
     setPaymentMethod(null);
     setNumpadValue("");
     setIsPaymentMode(false);
-    setCurrentOrderId(null);
     navigate('/pos/floor');
   };
 
@@ -524,14 +541,16 @@ export default function OrderViewPage() {
                 ) : (
                   orderItems.map(item => (
                     <div key={item.id} className="bg-white rounded-lg p-3.5 border border-slate-200 relative group shadow-sm">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="absolute -top-2.5 -right-2.5 h-6 w-6 rounded-full bg-slate-100 text-slate-400 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 opacity-0 group-hover:opacity-100 transition-all"
-                        onClick={() => handleRemoveItem(item.id)}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
+                      {item.sentQuantity === 0 && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute -top-2.5 -right-2.5 h-6 w-6 rounded-full bg-slate-100 text-slate-400 border border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 opacity-0 group-hover:opacity-100 transition-all"
+                          onClick={() => handleRemoveItem(item.id)}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       
                       <div className="font-semibold text-slate-900 mb-2">{item.menuItem.name}</div>
                       
