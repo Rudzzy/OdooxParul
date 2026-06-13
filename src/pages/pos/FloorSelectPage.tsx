@@ -12,7 +12,7 @@ interface Table {
   id: string;
   number: string;
   status: TableStatus;
-  guests: number;
+  capacity: number;
   orderAmount: number;
   customerName?: string;
 }
@@ -55,7 +55,7 @@ export default function FloorSelectPage() {
           id: t.id,
           number: t.tableNumber.replace(/^T/i, ""),
           status: t.isActive ? "Available" as TableStatus : "Available" as TableStatus,
-          guests: 0,
+          capacity: t.capacity || 0,
           orderAmount: 0,
         }));
         setTables(backendTables);
@@ -148,7 +148,7 @@ export default function FloorSelectPage() {
                 <div className="flex items-center justify-between text-sm opacity-80">
                   <div className="flex items-center gap-1.5 font-medium">
                     <Users className="h-4 w-4" />
-                    <span>{table.guests > 0 ? `${table.guests} Guests` : '--'}</span>
+                    <span>{table.capacity > 0 ? `${table.capacity} Seats` : '--'}</span>
                   </div>
                 </div>
                 

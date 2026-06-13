@@ -13,7 +13,6 @@ interface Order {
   id: string;
   orderNumber: string;
   tableNumber: string;
-  guests: number;
   totalValue: number;
   createdTime: string;
   status: OrderStatus;
@@ -46,7 +45,6 @@ export default function OrdersListPage() {
           id: o.id,
           orderNumber: `ORD-${String(1001 + index).padStart(4, "0")}`,
           tableNumber: o.tableId || "N/A",
-          guests: o.guests || 0,
           totalValue: o.totalAmount || 0,
           createdTime: o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
           status: (o.status || "Pending") as OrderStatus,
@@ -125,7 +123,6 @@ export default function OrdersListPage() {
                   <div className="text-sm text-slate-500 font-medium mb-1">{order.orderNumber}</div>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold tracking-tight">Table {order.tableNumber}</span>
-                    <span className="text-sm text-slate-400">({order.guests} Guests)</span>
                   </div>
                 </div>
                 <Badge variant="secondary" className={`font-semibold ${getStatusColor(order.status)}`}>

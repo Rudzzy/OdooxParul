@@ -11,7 +11,6 @@ interface OrderDetail {
   id: string;
   orderNumber: string;
   tableNumber: string;
-  guests: number;
   waiter: string;
   createdTime: string;
   status: string;
@@ -46,8 +45,7 @@ export default function OrderDetailPage() {
         setOrder({
           id: o.id,
           orderNumber: `ORD-${o.id?.substring(0, 4)?.toUpperCase() || "0000"}`,
-          tableNumber: o.tableId || "N/A",
-          guests: o.guests || 0,
+          tableNumber: o.tableNumber || "N/A",
           waiter: o.waiterName || "Staff",
           createdTime: o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
           status: o.status || "Pending",
@@ -203,10 +201,6 @@ export default function OrderDetailPage() {
               <div className="flex justify-between items-center">
                 <span className="text-slate-500">Table Number</span>
                 <span className="font-bold text-slate-900 text-lg">{order.tableNumber}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-500">Guests</span>
-                <span className="font-semibold text-slate-900">{order.guests}</span>
               </div>
             </CardContent>
           </Card>
