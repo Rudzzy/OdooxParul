@@ -24,8 +24,6 @@ import OrderViewPage from "./pages/pos/OrderViewPage";
 import OrdersListPage from "./pages/pos/OrdersListPage";
 import OrderDetailPage from "./pages/pos/OrderDetailPage";
 import CustomerManagePage from "./pages/pos/CustomerManagePage";
-import PaymentPage from "./pages/pos/PaymentPage";
-import PaymentSuccessPage from "./pages/pos/PaymentSuccessPage";
 
 import KitchenDisplayPage from "./pages/kitchen/KitchenDisplayPage";
 
@@ -63,8 +61,6 @@ export default function App() {
           <Route path="orders" element={<OrdersListPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="customers" element={<CustomerManagePage />} />
-          <Route path="payment/:orderId" element={<PaymentPage />} />
-          <Route path="payment-success/:orderId" element={<PaymentSuccessPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
-type TableStatus = "Available" | "Occupied" | "Ordered" | "Waiting for Payment" | "Cleaning Required";
+type TableStatus = "Available" | "Ordering" | "Sent To Kitchen" | "Ready To Serve" | "Payment Pending";
 
 interface Table {
   id: string;
@@ -19,26 +19,26 @@ interface Table {
 
 const mockTables: Table[] = [
   { id: "t1", number: "1", status: "Available", guests: 0, orderAmount: 0 },
-  { id: "t2", number: "2", status: "Occupied", guests: 4, orderAmount: 0, customerName: "Rahul" },
-  { id: "t3", number: "3", status: "Ordered", guests: 2, orderAmount: 1250 },
-  { id: "t4", number: "4", status: "Waiting for Payment", guests: 6, orderAmount: 3400, customerName: "Priya" },
-  { id: "t5", number: "5", status: "Cleaning Required", guests: 0, orderAmount: 0 },
+  { id: "t2", number: "2", status: "Ordering", guests: 4, orderAmount: 0, customerName: "Rahul" },
+  { id: "t3", number: "3", status: "Sent To Kitchen", guests: 2, orderAmount: 1250 },
+  { id: "t4", number: "4", status: "Payment Pending", guests: 6, orderAmount: 3400, customerName: "Priya" },
+  { id: "t5", number: "5", status: "Ready To Serve", guests: 2, orderAmount: 450 },
   { id: "t6", number: "6", status: "Available", guests: 0, orderAmount: 0 },
-  { id: "t7", number: "7", status: "Ordered", guests: 3, orderAmount: 850 },
+  { id: "t7", number: "7", status: "Sent To Kitchen", guests: 3, orderAmount: 850 },
   { id: "t8", number: "8", status: "Available", guests: 0, orderAmount: 0 },
-  { id: "t9", number: "9", status: "Occupied", guests: 5, orderAmount: 0 },
-  { id: "t10", number: "10", status: "Ordered", guests: 2, orderAmount: 450 },
-  { id: "t11", number: "11", status: "Waiting for Payment", guests: 4, orderAmount: 2100 },
-  { id: "t12", number: "12", status: "Cleaning Required", guests: 0, orderAmount: 0 },
+  { id: "t9", number: "9", status: "Ordering", guests: 5, orderAmount: 0 },
+  { id: "t10", number: "10", status: "Ready To Serve", guests: 2, orderAmount: 450 },
+  { id: "t11", number: "11", status: "Payment Pending", guests: 4, orderAmount: 2100 },
+  { id: "t12", number: "12", status: "Available", guests: 0, orderAmount: 0 },
 ];
 
 const getStatusColor = (status: TableStatus) => {
   switch (status) {
     case "Available": return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
-    case "Occupied": return "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200";
-    case "Ordered": return "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200";
-    case "Waiting for Payment": return "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200";
-    case "Cleaning Required": return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
+    case "Ordering": return "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200";
+    case "Sent To Kitchen": return "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200";
+    case "Ready To Serve": return "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200";
+    case "Payment Pending": return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
     default: return "bg-slate-100 text-slate-800";
   }
 };
@@ -46,15 +46,15 @@ const getStatusColor = (status: TableStatus) => {
 const getStatusIndicator = (status: TableStatus) => {
   switch (status) {
     case "Available": return "bg-green-500";
-    case "Occupied": return "bg-orange-500";
-    case "Ordered": return "bg-blue-500";
-    case "Waiting for Payment": return "bg-purple-500";
-    case "Cleaning Required": return "bg-red-500";
+    case "Ordering": return "bg-orange-500";
+    case "Sent To Kitchen": return "bg-blue-500";
+    case "Ready To Serve": return "bg-purple-500";
+    case "Payment Pending": return "bg-red-500";
     default: return "bg-slate-500";
   }
 };
 
-const filters = ["All Tables", "Available", "Occupied", "Ordered", "Payment Pending"];
+const filters = ["All Tables", "Available", "Ordering", "Sent To Kitchen", "Ready To Serve", "Payment Pending"];
 
 export default function FloorSelectPage() {
   const navigate = useNavigate();
@@ -68,10 +68,9 @@ export default function FloorSelectPage() {
       
     // Filter matching
     let matchesFilter = true;
-    if (activeFilter === "Available") matchesFilter = table.status === "Available";
-    if (activeFilter === "Occupied") matchesFilter = table.status === "Occupied";
-    if (activeFilter === "Ordered") matchesFilter = table.status === "Ordered";
-    if (activeFilter === "Payment Pending") matchesFilter = table.status === "Waiting for Payment";
+    if (activeFilter !== "All Tables") {
+      matchesFilter = table.status === activeFilter;
+    }
 
     return matchesSearch && matchesFilter;
   });
