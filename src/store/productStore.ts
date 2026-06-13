@@ -20,6 +20,9 @@ interface ProductState {
   categories: Category[];
   products: Product[];
   addCategory: (category: Omit<Category, "id">) => Category;
+  updateCategory: (id: string, category: Partial<Category>) => void;
+  deleteCategory: (id: string) => void;
+  reorderCategories: (startIndex: number, endIndex: number) => void;
   addProduct: (product: Omit<Product, "id">) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
@@ -69,6 +72,24 @@ export const useProductStore = create<ProductState>((set) => ({
     const newCategory = { ...category, id: Math.random().toString(36).substring(2, 9) };
     set((state) => ({ categories: [...state.categories, newCategory] }));
     return newCategory;
+  },
+  updateCategory: (id, updatedFields) => {
+    set((state) => ({
+      categories: state.categories.map((c) => (c.id === id ? { ...c, ...updatedFields } : c)),
+    }));
+  },
+  deleteCategory: (id) => {
+    set((state) => ({
+      categories: state.categories.filter((c) => c.id !== id),
+    }));
+  },
+  reorderCategories: (startIndex, endIndex) => {
+    set((state) => {
+      const newCategories = Array.from(state.categories);
+      const [removed] = newCategories.splice(startIndex, 1);
+      newCategories.splice(endIndex, 0, removed);
+      return { categories: newCategories };
+    });
   },
   addProduct: (product) => {
     const newProduct = { ...product, id: Math.random().toString(36).substring(2, 9) };
