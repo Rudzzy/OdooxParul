@@ -52,8 +52,8 @@ const formSchema = z.object({
   categoryId: z.string().min(1, { message: "Please select a category." }),
   price: z.coerce.number().min(0, { message: "Price must be a positive number." }),
   description: z.string().optional(),
-  isVeg: z.boolean().default(true),
-  status: z.enum(["available", "unavailable"]).default("available"),
+  isVeg: z.boolean(),
+  status: z.enum(["available", "unavailable"]),
 });
 
 type ProductFormValues = z.infer<typeof formSchema>;
@@ -100,10 +100,10 @@ export default function ProductFormPage() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     if (isEditing && id) {
-      updateProduct(id, values);
+      updateProduct(id, { ...values, description: values.description || "" });
       toast.success("Product updated successfully");
     } else {
-      addProduct(values);
+      addProduct({ ...values, description: values.description || "" });
       toast.success("Product created successfully");
     }
 
