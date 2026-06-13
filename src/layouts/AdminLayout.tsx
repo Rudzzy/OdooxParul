@@ -15,10 +15,7 @@ export default function AdminLayout() {
         </header>
 
         <main className="flex-1 overflow-auto relative flex flex-col">
-          {/* Desktop Top Bar (Optional, can be used for secondary actions) */}
-          <div className="hidden md:flex h-20 items-center px-6 bg-white border-b shadow-sm shrink-0">
-            <h2 className="text-xl font-semibold text-slate-800">Dashboard Overview</h2>
-          </div>
+          {/* Removed Desktop Top Bar */}
           
           <div className="flex-1 overflow-auto">
             <Outlet />

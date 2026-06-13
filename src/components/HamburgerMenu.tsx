@@ -3,11 +3,13 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 
 export const MENU_LINKS = [
+
   { label: "Products", to: "/admin/products" },
   { label: "Category", to: "/admin/categories" },
   { label: "Payment method", to: "/admin/payment-methods" },
   { label: "Coupons", to: "/admin/coupons" },
   { label: "Promotions", to: "/admin/promotions" },
+  { label: "Floors", to: "/admin/floors" },
   { label: "Booking", to: "/admin/bookings" },
   { label: "User/Employee", to: "/admin/employees" },
   { label: "Reports", to: "/admin/reports" },
