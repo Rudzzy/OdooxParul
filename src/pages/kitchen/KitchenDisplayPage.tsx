@@ -231,7 +231,10 @@ export default function KitchenDisplayPage() {
                             `}>
                               {item.quantity}x
                             </span>
-                            {item.name}
+                            <div className="flex flex-col">
+                              <span>{item.name}</span>
+                              {item.notes && <span className="text-sm text-orange-600 mt-0.5 font-medium bg-orange-50 px-2 py-0.5 rounded w-fit border border-orange-200">Instruction: {item.notes}</span>}
+                            </div>
                           </div>
                           {item.prepared && <Check className="w-6 h-6 text-emerald-500 mr-2 shrink-0" />}
                         </li>

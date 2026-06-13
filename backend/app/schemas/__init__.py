@@ -3,6 +3,19 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr
 
 
+# ─── CRM (Customers) ─────────────────────────────────────────────────────────
+
+class CustomerCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+class CustomerOut(CustomerCreate):
+    id: str
+    class Config:
+        from_attributes = True
+
+
 # ─── Auth ────────────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
@@ -152,14 +165,18 @@ class OrderItem(BaseModel):
     name: str
     price: float
     quantity: int
+    notes: Optional[str] = None
 
 class OrderCreate(BaseModel):
     tableId: Optional[str] = None
+    customerName: Optional[str] = None
+    customerPhone: Optional[str] = None
     items: List[OrderItem] = []
     subtotal: float = 0.0
     tax: float = 0.0
     total: float = 0.0
     status: str = "open"
+    timestamp: Optional[str] = None
 
 class OrderOut(BaseModel):
     id: str
@@ -180,6 +197,7 @@ class KDSOrderItemCreate(BaseModel):
     name: str
     quantity: int = 1
     categoryId: Optional[str] = None
+    notes: Optional[str] = None
 
 class KDSOrderItemOut(BaseModel):
     id: str
@@ -187,6 +205,7 @@ class KDSOrderItemOut(BaseModel):
     quantity: int
     prepared: bool
     categoryId: Optional[str] = None
+    notes: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -194,6 +213,7 @@ class KDSOrderCreate(BaseModel):
     customerName: Optional[str] = None
     items: List[KDSOrderItemCreate] = []
     tableId: Optional[str] = None
+    orderId: Optional[str] = None
 
 class KDSOrderOut(BaseModel):
     id: str
@@ -202,6 +222,7 @@ class KDSOrderOut(BaseModel):
     stage: str
     timestamp: str
     tableId: Optional[str] = None
+    orderId: Optional[str] = None
     items: List[KDSOrderItemOut] = []
     class Config:
         from_attributes = True

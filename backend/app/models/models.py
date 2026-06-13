@@ -14,6 +14,17 @@ def gen_id():
     return str(uuid.uuid4())
 
 
+# ─── CRM (Customers) ─────────────────────────────────────────────────────────
+
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id = Column(String, primary_key=True, default=gen_id)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+
+
 # ─── Auth ────────────────────────────────────────────────────────────────────
 
 class UserRole(str, enum.Enum):
@@ -185,12 +196,14 @@ class Order(Base):
 
     id = Column(String, primary_key=True, default=gen_id)
     tableId = Column(String, ForeignKey("tables.id"), nullable=True)
+    customerName = Column(String, nullable=True)
+    customerPhone = Column(String, nullable=True)
     status = Column(SAEnum(OrderStatus), default=OrderStatus.open)
     items = Column(JSON, default=list)  # [{productId, name, price, quantity}]
     subtotal = Column(Float, default=0.0)
     tax = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
-    timestamp = Column(String, default=lambda: datetime.utcnow().isoformat())
+    timestamp = Column(String, default=lambda: datetime.now().isoformat())
 
 
 # ─── KDS (Kitchen Display System) ────────────────────────────────────────────
@@ -199,6 +212,7 @@ class KDSStage(str, enum.Enum):
     to_cook = "To Cook"
     preparing = "Preparing"
     completed = "Completed"
+    cancelled = "Cancelled"
 
 
 class KDSOrder(Base):
@@ -210,6 +224,7 @@ class KDSOrder(Base):
     stage = Column(SAEnum(KDSStage), default=KDSStage.to_cook)
     timestamp = Column(String, nullable=False)
     tableId = Column(String, ForeignKey("tables.id"), nullable=True)
+    orderId = Column(String, ForeignKey("orders.id"), nullable=True)
 
     items = relationship("KDSOrderItem", back_populates="kds_order", cascade="all, delete-orphan")
 
@@ -223,6 +238,7 @@ class KDSOrderItem(Base):
     quantity = Column(Integer, default=1)
     prepared = Column(Boolean, default=False)
     categoryId = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
 
     kds_order = relationship("KDSOrder", back_populates="items")
 

@@ -9,6 +9,7 @@ export type KDSItem = {
   quantity: number;
   prepared: boolean;
   categoryId?: string;
+  notes?: string;
 };
 
 export type KDSOrder = {
@@ -27,8 +28,9 @@ interface KDSState {
   fetchOrders: () => Promise<void>;
   addOrder: (order: {
     customerName?: string;
-    items: { name: string; quantity: number; categoryId?: string }[];
+    items: { name: string; quantity: number; categoryId?: string; notes?: string }[];
     tableId?: string;
+    orderId?: string;
   }) => Promise<void>;
   toggleItemPrepared: (orderId: string, itemId: string) => Promise<void>;
   advanceOrderStage: (orderId: string) => Promise<void>;

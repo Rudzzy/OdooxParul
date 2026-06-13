@@ -28,10 +28,19 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchOrderAndTables = async () => {
       try {
-        const res = await api.get(`/orders/${id}`);
-        const o = res.data;
+        const [orderRes, tablesRes] = await Promise.all([
+          api.get(`/orders/${id}`),
+          api.get("/tables").catch(() => ({ data: [] }))
+        ]);
+        const o = orderRes.data;
+        
+        const tablesMap: Record<string, string> = {};
+        tablesRes.data.forEach((t: any) => {
+          tablesMap[t.id] = t.tableNumber;
+        });
+
         // Map backend order to local shape
         const items = (o.items || []).map((item: any, idx: number) => ({
           id: item.id || `i${idx}`,
@@ -45,9 +54,9 @@ export default function OrderDetailPage() {
         setOrder({
           id: o.id,
           orderNumber: `ORD-${o.id?.substring(0, 4)?.toUpperCase() || "0000"}`,
-          tableNumber: o.tableNumber || "N/A",
+          tableNumber: tablesMap[o.tableId] || o.tableId || "N/A",
           waiter: o.waiterName || "Staff",
-          createdTime: o.createdAt ? new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
+          createdTime: o.timestamp ? new Date(o.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
           status: o.status || "Pending",
           items,
           subtotal,
@@ -62,7 +71,7 @@ export default function OrderDetailPage() {
         setLoading(false);
       }
     };
-    fetchOrder();
+    fetchOrderAndTables();
   }, [id]);
 
   if (loading) {
@@ -72,6 +81,27 @@ export default function OrderDetailPage() {
       </div>
     );
   }
+
+  const handleCancelOrder = async () => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    try {
+      const res = await api.get(`/orders/${order!.id}`);
+      await api.put(`/orders/${order!.id}`, {
+        ...res.data,
+        status: "cancelled"
+      });
+      // Also cancel associated KDS orders
+      try {
+        await api.patch(`/kds/${order!.id}/cancel`);
+      } catch (kdsErr) {
+        console.error("Failed to cancel KDS orders or none found", kdsErr);
+      }
+      setOrder(prev => prev ? { ...prev, status: "cancelled" } : null);
+    } catch (error) {
+      console.error("Failed to cancel order:", error);
+      alert("Failed to cancel order");
+    }
+  };
 
   if (!order) {
     return (
@@ -105,14 +135,11 @@ export default function OrderDetailPage() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="bg-white">
-            <Printer className="mr-2 h-4 w-4" />
-            Print KOT
-          </Button>
-          <Button onClick={() => navigate(`/pos/payment/${order.id}`)} className="bg-blue-600 hover:bg-blue-700">
-            <CreditCard className="mr-2 h-4 w-4" />
-            Process Payment
-          </Button>
+          {order.status !== "cancelled" && (
+            <Button variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700" onClick={handleCancelOrder}>
+              Cancel Order
+            </Button>
+          )}
         </div>
       </div>
 
@@ -152,46 +179,8 @@ export default function OrderDetailPage() {
           </Card>
         </div>
 
-        {/* Right Column: Summary & Info */}
+        {/* Right Column: Info */}
         <div className="space-y-6">
-          <Card className="bg-white shadow-sm">
-            <CardHeader className="pb-3 border-b">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-slate-500" />
-                Billing Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5">
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between text-slate-600">
-                  <span>Subtotal</span>
-                  <span className="font-semibold text-slate-800">₹{order.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-slate-600">
-                  <span>Tax (5%)</span>
-                  <span className="font-semibold text-slate-800">₹{order.tax.toFixed(2)}</span>
-                </div>
-                {order.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount</span>
-                    <span className="font-semibold">-₹{order.discount.toFixed(2)}</span>
-                  </div>
-                )}
-                <Separator className="my-3" />
-                <div className="flex justify-between text-xl font-bold text-slate-900">
-                  <span>Total</span>
-                  <span>₹{order.total.toFixed(2)}</span>
-                </div>
-              </div>
-              
-              <Button 
-                className="w-full mt-6 bg-blue-600 hover:bg-blue-700 h-12 text-lg shadow-sm"
-                onClick={() => navigate(`/pos/payment/${order.id}`)}
-              >
-                Checkout
-              </Button>
-            </CardContent>
-          </Card>
 
           <Card className="bg-white shadow-sm">
             <CardHeader className="pb-3 border-b">

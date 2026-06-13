@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Filter, Users, IndianRupee } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import api from "@/lib/api";
+import { usePosStore } from "@/store/posStore";
 
-type TableStatus = "Available" | "Ordering" | "Sent To Kitchen" | "Ready To Serve" | "Payment Pending";
+type TableStatus = "Available" | "Occupied" | "Unavailable";
 
 interface Table {
   id: string;
@@ -20,10 +21,8 @@ interface Table {
 const getStatusColor = (status: TableStatus) => {
   switch (status) {
     case "Available": return "bg-green-100 text-green-800 border-green-200 hover:bg-green-200";
-    case "Ordering": return "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200";
-    case "Sent To Kitchen": return "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200";
-    case "Ready To Serve": return "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200";
-    case "Payment Pending": return "bg-red-100 text-red-800 border-red-200 hover:bg-red-200";
+    case "Occupied": return "bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200";
+    case "Unavailable": return "bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200";
     default: return "bg-slate-100 text-slate-800";
   }
 };
@@ -31,41 +30,77 @@ const getStatusColor = (status: TableStatus) => {
 const getStatusIndicator = (status: TableStatus) => {
   switch (status) {
     case "Available": return "bg-green-500";
-    case "Ordering": return "bg-orange-500";
-    case "Sent To Kitchen": return "bg-blue-500";
-    case "Ready To Serve": return "bg-purple-500";
-    case "Payment Pending": return "bg-red-500";
+    case "Occupied": return "bg-orange-500";
+    case "Unavailable": return "bg-slate-500";
     default: return "bg-slate-500";
   }
 };
 
-const filters = ["All Tables", "Available", "Ordering", "Sent To Kitchen", "Ready To Serve", "Payment Pending"];
+const filters = ["All Tables", "Available", "Occupied", "Unavailable"];
 
 export default function FloorSelectPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("All Tables");
-  const [tables, setTables] = useState<Table[]>([]);
+  const [apiTables, setApiTables] = useState<any[]>([]);
+  const [openOrdersMap, setOpenOrdersMap] = useState<Record<string, any>>({});
+  const { sessions } = usePosStore();
 
   useEffect(() => {
-    const fetchTables = async () => {
+    const fetchTablesAndOrders = async () => {
       try {
-        const res = await api.get("/tables");
-        const backendTables = res.data.map((t: any) => ({
-          id: t.id,
-          number: t.tableNumber.replace(/^T/i, ""),
-          status: t.isActive ? "Available" as TableStatus : "Available" as TableStatus,
-          capacity: t.capacity || 0,
-          orderAmount: 0,
-        }));
-        setTables(backendTables);
+        const [tablesRes, ordersRes] = await Promise.all([
+          api.get("/tables"),
+          api.get("/orders").catch(() => ({ data: [] }))
+        ]);
+
+        const ordersMap: Record<string, any> = {};
+        if (ordersRes.data) {
+          ordersRes.data.forEach((o: any) => {
+            if (o.status === "open" && o.tableId) {
+              ordersMap[o.tableId] = o;
+            }
+          });
+        }
+        setOpenOrdersMap(ordersMap);
+        setApiTables(tablesRes.data);
       } catch {
         // If API fails, show empty state
-        setTables([]);
+        setApiTables([]);
       }
     };
-    fetchTables();
+    fetchTablesAndOrders();
   }, []);
+
+  const tables = useMemo<Table[]>(() => {
+    return apiTables.map((t: any) => {
+      const openOrder = openOrdersMap[t.id];
+      const session = sessions[t.id];
+      
+      let status: TableStatus = t.isActive ? "Available" : "Unavailable";
+      let orderAmount = 0;
+      let customerName = undefined;
+
+      if (openOrder) {
+        status = "Occupied";
+        orderAmount = openOrder.total || 0;
+      } else if (session && session.status === "Occupied") {
+        status = "Occupied";
+        const subtotal = session.orderItems.reduce((acc, item) => acc + (item.menuItem.price * item.quantity), 0);
+        orderAmount = Math.round(subtotal * 1.05); // including 5% tax
+        customerName = session.customer?.name;
+      }
+
+      return {
+        id: t.id,
+        number: t.tableNumber.replace(/^T/i, ""),
+        status,
+        capacity: t.capacity || 0,
+        orderAmount,
+        customerName,
+      };
+    });
+  }, [apiTables, openOrdersMap, sessions]);
 
   const filteredTables = tables.filter((table) => {
     // Search matching
@@ -131,8 +166,8 @@ export default function FloorSelectPage() {
         {filteredTables.map((table) => (
           <Card 
             key={table.id} 
-            className={`cursor-pointer transition-all border-2 ${getStatusColor(table.status)} shadow-sm hover:shadow-md`}
-            onClick={() => handleTableClick(table.id)}
+            className={`transition-all border-2 ${getStatusColor(table.status)} shadow-sm hover:shadow-md ${table.status === "Unavailable" ? "opacity-60 cursor-not-allowed grayscale-[50%]" : "cursor-pointer"}`}
+            onClick={() => table.status !== "Unavailable" && handleTableClick(table.id)}
           >
             <CardContent className="p-4 sm:p-5 flex flex-col h-full">
               <div className="flex justify-between items-start mb-3">
