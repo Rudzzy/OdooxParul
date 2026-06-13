@@ -458,7 +458,7 @@ export default function OrderViewPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Transaction ID</span>
-                <span className="font-semibold text-slate-300">TXN-{Math.floor(Math.random() * 1000000)}</span>
+                <span className="font-semiboldtext-slate-300">TXN-{Math.floor(Math.random() * 1000000)}</span>
               </div>
             </div>
 
