@@ -17,6 +17,7 @@ import BookingsPage from "./pages/admin/BookingsPage";
 import EmployeesPage from "./pages/admin/EmployeesPage";
 import KDSSettingsPage from "./pages/admin/KDSSettingsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
+import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 
 import FloorSelectPage from "./pages/pos/FloorSelectPage";
 import OrderViewPage from "./pages/pos/OrderViewPage";
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="floors" element={<FloorsPage />} />
           <Route path="bookings" element={<BookingsPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="employees" element={<EmployeesPage />} />
           <Route path="kds-settings" element={<KDSSettingsPage />} />
           <Route path="reports" element={<ReportsPage />} />
