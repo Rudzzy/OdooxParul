@@ -72,6 +72,11 @@ def seed():
         {"name": "Snacks",    "color": "bg-yellow-500"},
         {"name": "Mains",     "color": "bg-red-500"},
         {"name": "Desserts",  "color": "bg-pink-500"},
+        {"name": "Pizza",     "color": "bg-orange-500"},
+        {"name": "Burger",    "color": "bg-amber-500"},
+        {"name": "Starters",  "color": "bg-green-500"},
+        {"name": "Pasta",     "color": "bg-purple-500"},
+        {"name": "Drinks",    "color": "bg-cyan-500"},
     ]
     cat_ids = {}
     for c in categories:
@@ -95,6 +100,12 @@ def seed():
         {"name": "Dal Tadka",      "categoryId": cat_ids["Mains"],     "price": 280, "isVeg": True},
         {"name": "Butter Chicken", "categoryId": cat_ids["Mains"],     "price": 350, "isVeg": False},
         {"name": "Gulab Jamun",    "categoryId": cat_ids["Desserts"],  "price": 90,  "isVeg": True},
+        {"name": "Cheese Pizza",   "categoryId": cat_ids["Pizza"],     "price": 450, "isVeg": True},
+        {"name": "Cheese Burger",  "categoryId": cat_ids["Burger"],    "price": 270, "isVeg": False},
+        {"name": "Paneer Tikka",   "categoryId": cat_ids["Starters"],  "price": 300, "isVeg": True},
+        {"name": "Arrabiata Pasta","categoryId": cat_ids["Pasta"],     "price": 380, "isVeg": True},
+        {"name": "Mojito",         "categoryId": cat_ids["Drinks"],    "price": 200, "isVeg": True},
+        {"name": "Chocolate Brownie","categoryId": cat_ids["Desserts"],"price": 250, "isVeg": True},
     ]
     for p in products:
         if not db.query(Product).filter(Product.name == p["name"]).first():

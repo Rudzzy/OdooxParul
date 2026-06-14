@@ -14,23 +14,7 @@ import { useKdsStore } from "@/store/kdsStore";
 import api from "@/lib/api";
 import { usePosStore, OrderItem } from "@/store/posStore";
 
-// Fallback Mock Data (used if API returns nothing)
-const fallbackCategories = ["All", "Starters", "Main Course", "Pizza", "Burger", "Pasta", "Drinks", "Desserts"];
 
-const fallbackMenuItems = [
-  { id: "m1", name: "Cheese Pizza", price: 450, category: "Pizza", isVeg: true, image: "" },
-  { id: "m2", name: "Cheese Burger", price: 270, category: "Burger", isVeg: false, image: "" },
-  { id: "m3", name: "Paneer Tikka", price: 300, category: "Starters", isVeg: true, image: "" },
-  { id: "m4", name: "Arrabiata Pasta", price: 380, category: "Pasta", isVeg: true, image: "" },
-  { id: "m5", name: "Mojito", price: 200, category: "Drinks", isVeg: true, image: "" },
-  { id: "m6", name: "Chocolate Brownie", price: 250, category: "Desserts", isVeg: true, image: "" },
-];
-
-const mockCustomers = [
-  { id: "c1", name: "Rahul Kumar", email: "rahul@example.com", phone: "9876543210" },
-  { id: "c2", name: "Priya Sharma", email: "priya@example.com", phone: "8765432109" },
-  { id: "c3", name: "Amit Singh", email: "amit@example.com", phone: "7654321098" },
-];
 
 interface MenuItem {
   id: string;
@@ -93,9 +77,8 @@ export default function OrderViewPage() {
   // KDS Store
   const { addOrder: sendToKds } = useKdsStore();
 
-  // Build menu items from DB products, fall back to mock if empty
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(fallbackMenuItems);
-  const [categoryList, setCategoryList] = useState<string[]>(fallbackCategories);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categoryList, setCategoryList] = useState<string[]>(["All"]);
 
   useEffect(() => {
     fetchProducts();
@@ -104,10 +87,6 @@ export default function OrderViewPage() {
 
   useEffect(() => {
     if (dbProducts.length > 0 && dbCategories.length > 0) {
-      // Build a categoryId -> categoryName map
-      const catMap: Record<string, string> = {};
-      dbCategories.forEach(c => { catMap[c.id] = c.name; });
-
       // Map DB products to menu items
       const items: MenuItem[] = dbProducts
         .filter(p => p.status === "available")
@@ -115,7 +94,7 @@ export default function OrderViewPage() {
           id: p.id,
           name: p.name,
           price: p.price,
-          category: catMap[p.categoryId] || "Other",
+          category: dbCategories.find(c => c.id === p.categoryId)?.name || "Uncategorized",
           isVeg: p.isVeg,
           image: "",
         }));
@@ -216,7 +195,7 @@ export default function OrderViewPage() {
         const res = await api.get("/customers");
         setCustomers(res.data);
       } catch (err) {
-        setCustomers(mockCustomers);
+        setCustomers([]);
       }
     };
     fetchCustomers();
