@@ -18,6 +18,8 @@ export interface MenuItem {
   image: string;
 }
 
+import { Coupon } from "./promotionStore";
+
 export interface OrderItem {
   id: string;
   menuItem: MenuItem;
@@ -31,6 +33,7 @@ export interface ActiveTableSession {
   status: PosTableStatus;
   customer: Customer | null;
   orderItems: OrderItem[];
+  appliedCoupon?: Coupon | null;
 }
 
 interface PosState {

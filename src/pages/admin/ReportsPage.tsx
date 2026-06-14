@@ -8,6 +8,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Sector, Brush } from 'recharts';
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-hot-toast";
+import api from "@/lib/api";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -19,66 +20,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
-// --- MOCK DATA ENGINE ---
+// --- CONSTANTS (kept in sync with seed data) ---
 
 const USERS = ["All Users", "Waiter 1", "Waiter 2", "Waiter 3", "Manager"];
 const SESSIONS = ["All Sessions", "Breakfast", "Lunch", "Dinner", "Night Shift"];
-const PRODUCTS = ["Pizza", "Burger", "Drink", "Appetizer", "Dessert"];
 
-const CATEGORY_COLORS = {
+const CATEGORY_COLORS: Record<string, string> = {
+  'Beverages': '#3b82f6',
+  'Snacks': '#eab308',
+  'Mains': '#ef4444',
+  'Desserts': '#ec4899',
   'Pizza': '#e28743',
   'Burger': '#eab676',
-  'Drink': '#76b5c5',
-  'Appetizer': '#abdbe3',
-  'Dessert': '#eeeee4'
+  'Starters': '#22c55e',
+  'Pasta': '#a855f7',
+  'Drinks': '#76b5c5',
 };
 
-const generateMockOrders = () => {
-  const orders = [];
-  const now = new Date();
-  for (let i = 0; i < 200; i++) {
-    const randomDaysAgo = Math.floor(Math.random() * 60); // past 60 days
-    const orderDate = subDays(now, randomDaysAgo);
-    const session = SESSIONS[Math.floor(Math.random() * (SESSIONS.length - 1)) + 1];
-    const user = USERS[Math.floor(Math.random() * (USERS.length - 1)) + 1];
-    
-    // items
-    const numItems = Math.floor(Math.random() * 5) + 1;
-    const items = [];
-    let total = 0;
-    for(let j=0; j<numItems; j++) {
-      const prodCategory = PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)];
-      const price = Math.floor(Math.random() * 30) + 5;
-      const qty = Math.floor(Math.random() * 3) + 1;
-      total += (price * qty);
-      items.push({
-        id: `item-${i}-${j}`,
-        name: `${prodCategory} Special ${j+1}`,
-        category: prodCategory,
-        price,
-        qty,
-        total: price * qty
-      });
-    }
+// Derive product/category list from fetched data
 
-    orders.push({
-      id: `ORD-${20000 + i}`,
-      session,
-      pos: `Terminal ${Math.floor(Math.random() * 5) + 1}`,
-      date: orderDate,
-      customer: Math.random() > 0.3 ? `Customer ${Math.floor(Math.random() * 100)}` : 'Walk-in',
-      employee: user,
-      total: total + (total * 0.05), // with 5% tax
-      tax: total * 0.05,
-      subtotal: total,
-      items
-    });
-  }
-  // Sort by date desc
-  return orders.sort((a, b) => b.date.getTime() - a.date.getTime());
-};
-
-const MOCK_ORDERS = generateMockOrders();
 
 // --- COMPONENTS ---
 
@@ -100,15 +60,72 @@ const renderActiveShape = (props: any) => {
 export default function ReportsPage() {
   // --- STATE ---
   
+  // API Data
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch orders from backend
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.get("/orders");
+        // Map backend shape to the shape the UI expects
+        const mapped = (res.data || []).map((o: any) => ({
+          id: o.id,
+          session: o.session || "Unknown",
+          pos: o.pos || "Unknown",
+          date: new Date(o.timestamp),
+          customer: o.customerName || "Walk-in",
+          employee: o.employee || "Unknown",
+          total: o.total,
+          tax: o.tax,
+          subtotal: o.subtotal,
+          items: (o.items || []).map((item: any, idx: number) => ({
+            id: `${o.id}-item-${idx}`,
+            name: item.name,
+            category: item.category || "Unknown",
+            price: item.price,
+            qty: item.quantity,
+            total: item.price * item.quantity,
+          })),
+        }));
+        // Sort by date desc
+        mapped.sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
+        setOrders(mapped);
+      } catch (err) {
+        console.error("Failed to fetch orders for reports:", err);
+        toast.error("Failed to load report data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  // Derive unique product categories from actual data
+  const PRODUCTS = useMemo(() => {
+    const cats = new Set<string>();
+    orders.forEach(o => o.items.forEach((item: any) => cats.add(item.category)));
+    return Array.from(cats).sort();
+  }, [orders]);
+
   // Filters
   const [dateRange, setDateRange] = useState<{from: Date | undefined, to: Date | undefined}>({ 
-    from: subDays(new Date(), 7), 
+    from: subDays(new Date(), 60), 
     to: new Date() 
   });
   const [selectedUser, setSelectedUser] = useState("All Users");
   const [selectedSession, setSelectedSession] = useState("All Sessions");
-  const [selectedProducts, setSelectedProducts] = useState<string[]>(PRODUCTS); // all selected by default
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   
+  // Auto-select all products when they are derived from data
+  useEffect(() => {
+    if (PRODUCTS.length > 0 && selectedProducts.length === 0) {
+      setSelectedProducts(PRODUCTS);
+    }
+  }, [PRODUCTS]);
+
   // UI State
   const [isProductFilterOpen, setIsProductFilterOpen] = useState(false);
   
@@ -123,10 +140,10 @@ export default function ReportsPage() {
   
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
-  // --- DATA PROCESSING (MOCK ENGINE) ---
+  // --- DATA PROCESSING ---
 
   const filteredOrders = useMemo(() => {
-    return MOCK_ORDERS.filter(order => {
+    return orders.filter(order => {
       // Date Filter
       if (dateRange.from && dateRange.to) {
         if (!isWithinInterval(order.date, { start: startOfDay(dateRange.from), end: endOfDay(dateRange.to) })) {
@@ -143,12 +160,12 @@ export default function ReportsPage() {
       if (selectedSession !== "All Sessions" && order.session !== selectedSession) return false;
 
       // Product Filter (Order must contain at least one selected product category)
-      const hasSelectedProduct = order.items.some(item => selectedProducts.includes(item.category));
+      const hasSelectedProduct = order.items.some((item: any) => selectedProducts.includes(item.category));
       if (!hasSelectedProduct) return false;
 
       return true;
     });
-  }, [dateRange, selectedUser, selectedSession, selectedProducts]);
+  }, [orders, dateRange, selectedUser, selectedSession, selectedProducts]);
 
   // Aggregations
   const { kpis, chartData, topCategoriesData, topProductsData } = useMemo(() => {
@@ -220,9 +237,64 @@ export default function ReportsPage() {
   // --- ACTIONS ---
   
   const handleExport = (type: 'pdf' | 'xls') => {
-    toast.success(`Exporting report as ${type.toUpperCase()}...`, {
-      icon: "📥"
-    });
+    if (type === 'pdf') {
+      import("jspdf").then(({ default: jsPDF }) => {
+        import("jspdf-autotable").then(({ default: autoTable }) => {
+          const doc = new jsPDF();
+          doc.text("Sales Report", 14, 15);
+          doc.setFontSize(10);
+          doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+
+          const tableData = paginatedOrders.map(order => [
+            order.id,
+            format(order.date, 'MMM dd, yyyy HH:mm'),
+            order.session,
+            order.pos,
+            order.customer,
+            order.employee,
+            `Rs. ${order.total}`
+          ]);
+
+          autoTable(doc, {
+            startY: 30,
+            head: [['Order ID', 'Date', 'Session', 'POS', 'Customer', 'Employee', 'Total']],
+            body: tableData,
+          });
+
+          doc.save("sales_report.pdf");
+          toast.success("PDF exported successfully");
+        });
+      });
+    } else {
+      // Export as CSV (Excel)
+      const headers = ['Order ID', 'Date', 'Session', 'POS', 'Customer', 'Employee', 'Total'];
+      const csvRows = [headers.join(',')];
+      
+      paginatedOrders.forEach(order => {
+        const row = [
+          order.id,
+          format(order.date, 'MMM dd, yyyy HH:mm'),
+          order.session,
+          order.pos,
+          order.customer,
+          order.employee,
+          order.total
+        ];
+        csvRows.push(row.join(','));
+      });
+      
+      const csvString = csvRows.join('\n');
+      const blob = new Blob([csvString], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('hidden', '');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'sales_report.csv');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      toast.success("Excel (CSV) exported successfully");
+    }
   };
 
   const toggleCategoryVisibility = (categoryName: string) => {
@@ -462,6 +534,7 @@ export default function ReportsPage() {
                     <XAxis dataKey="date" stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
                     <YAxis stroke="#94a3b8" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val}`} />
                     <RechartsTooltip 
+                      formatter={(value: number) => [`₹${value}`, "Revenue"]}
                       contentStyle={{ backgroundColor: '#fff', borderColor: '#e2e8f0', color: '#0f172a', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }} 
                       itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
                     />
@@ -491,9 +564,9 @@ export default function ReportsPage() {
                       activeShape={renderActiveShape}
                       data={visiblePieData}
                       cx="50%"
-                      cy="45%"
-                      innerRadius={60}
-                      outerRadius={80}
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
                       paddingAngle={5}
                       dataKey="revenue"
                       stroke="none"
@@ -506,7 +579,7 @@ export default function ReportsPage() {
                       ))}
                     </Pie>
                     <RechartsTooltip 
-                      formatter={(value: number) => `₹${value.toLocaleString()}`}
+                      formatter={(value: number) => [`₹${value.toLocaleString()}`, "Revenue"]}
                       contentStyle={{ backgroundColor: '#fff', borderColor: '#e2e8f0', color: '#0f172a', borderRadius: '8px' }}
                     />
                   </PieChart>

@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.models.models import (
     Category, Product, Floor, TableItem,
-    Booking, PaymentMethod, Coupon, Promotion, Order, Customer
+    Booking, PaymentMethod, Coupon, Promotion, Order, Customer, User
 )
 from app.schemas import (
     CategoryCreate, CategoryOut,
@@ -15,8 +15,13 @@ from app.schemas import (
     PromotionCreate, PromotionOut,
     OrderCreate, OrderOut,
     CustomerCreate, CustomerOut,
+    UserCreate, UserOut,
 )
 from app.routers.crud_helper import build_crud_router
+
+# ─── Users (Employees) ───────────────────────────────────────────────────────
+users_router = APIRouter(prefix="/api/users", tags=["Users"])
+build_crud_router(users_router, User, UserCreate, UserOut, "User")
 
 # ─── CRM (Customers) ─────────────────────────────────────────────────────────
 customers_router = APIRouter(prefix="/api/customers", tags=["Customers"])

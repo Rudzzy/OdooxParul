@@ -22,11 +22,16 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-class UserOut(BaseModel):
-    id: str
+class UserCreate(BaseModel):
     name: str
     email: str
     role: str
+    status: str = "Active"
+    pin: Optional[str] = None
+    hashed_password: str = "dummy"  # Required by model, frontend won't send it, so default here
+
+class UserOut(UserCreate):
+    id: str
     class Config:
         from_attributes = True
 
@@ -177,16 +182,24 @@ class OrderCreate(BaseModel):
     total: float = 0.0
     status: str = "open"
     timestamp: Optional[str] = None
+    session: Optional[str] = None
+    pos: Optional[str] = None
+    employee: Optional[str] = None
 
 class OrderOut(BaseModel):
     id: str
     tableId: Optional[str]
+    customerName: Optional[str] = None
+    customerPhone: Optional[str] = None
     status: str
     items: list
     subtotal: float
     tax: float
     total: float
     timestamp: Optional[str] = None
+    session: Optional[str] = None
+    pos: Optional[str] = None
+    employee: Optional[str] = None
     class Config:
         from_attributes = True
 

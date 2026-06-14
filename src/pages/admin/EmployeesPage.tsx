@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -105,7 +105,12 @@ export default function EmployeesPage() {
   });
 
   // Derived state (Assume the first Admin is the current logged in user for this demo)
-  const currentAdmin = employees.find(e => e.role === "Admin");
+  const currentAdmin = employees.find(e => e.role.toLowerCase() === "admin");
+
+  // Fetch users on mount
+  useEffect(() => {
+    useEmployeeStore.getState().fetchEmployees();
+  }, []);
 
   // --- Handlers ---
   const openEmployeeModal = (employee?: Employee) => {

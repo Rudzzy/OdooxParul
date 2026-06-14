@@ -104,7 +104,7 @@ export default function OrdersListPage() {
       </div>
 
       {/* Quick Filters */}
-      <div className="flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
+      <div className="flex flex-wrap pb-2 gap-2">
         {filters.map((filter) => (
           <Button
             key={filter}

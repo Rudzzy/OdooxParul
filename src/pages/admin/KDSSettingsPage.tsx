@@ -18,9 +18,15 @@ import {
 import { Badge } from "../../components/ui/badge";
 
 export default function KDSSettingsPage() {
-  const { products, categories, updateProduct } = useProductStore();
+  const { products, categories, updateProduct, fetchProducts, fetchCategories } = useProductStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Fetch products and categories on mount
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
   
   // Local state to handle fast toggling before debounce sync
   const [localToggles, setLocalToggles] = useState<Record<string, boolean>>({});
