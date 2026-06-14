@@ -42,15 +42,11 @@ interface PosState {
   addCustomer: (customer: Customer) => void;
 }
 
-const mockCustomers: Customer[] = [
-  { id: "c1", name: "Rahul Kumar", email: "rahul@example.com", phone: "9876543210" },
-  { id: "c2", name: "Priya Sharma", email: "priya@example.com", phone: "8765432109" },
-  { id: "c3", name: "Amit Singh", email: "amit@example.com", phone: "7654321098" },
-];
+
 
 export const usePosStore = create<PosState>((set, get) => ({
   sessions: {},
-  customers: mockCustomers,
+  customers: [],
   
   getSession: (tableId: string) => {
     const session = get().sessions[tableId];
