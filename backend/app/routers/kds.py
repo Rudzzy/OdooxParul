@@ -132,6 +132,8 @@ def advance_kds_stage(
         order.stage = KDSStage.preparing
     elif order.stage == KDSStage.preparing:
         order.stage = KDSStage.completed
+        for item in order.items:
+            item.prepared = True
     else:
         raise HTTPException(status_code=400, detail="Order is already completed")
 
@@ -204,4 +206,16 @@ def delete_kds_order(
     if not order:
         raise HTTPException(status_code=404, detail="KDS order not found")
     db.delete(order)
+    db.commit()
+
+# ─── DELETE /api/kds/bulk/completed — Clear all completed tickets ────────────
+
+@router.delete("/bulk/completed", status_code=status.HTTP_204_NO_CONTENT)
+def clear_completed_orders(
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    orders = db.query(KDSOrder).filter(KDSOrder.stage == KDSStage.completed).all()
+    for order in orders:
+        db.delete(order)
     db.commit()

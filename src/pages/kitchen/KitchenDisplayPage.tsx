@@ -14,7 +14,7 @@ import { Separator } from "../../components/ui/separator";
 type TabFilter = "All" | KDSStage;
 
 export default function KitchenDisplayPage() {
-  const { orders, toggleItemPrepared, advanceOrderStage, fetchOrders } = useKdsStore();
+  const { orders, toggleItemPrepared, advanceOrderStage, fetchOrders, clearCompletedOrders } = useKdsStore();
 
   // Fetch orders on mount + poll every 5 seconds
   useEffect(() => {
@@ -158,23 +158,35 @@ export default function KitchenDisplayPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50">
         {/* Top Nav Tabs */}
-        <div className="bg-white border-b border-slate-200 p-4 shrink-0 flex items-center gap-3 overflow-x-auto no-scrollbar shadow-sm z-10">
-          {(["All", "To Cook", "Preparing", "Completed"] as TabFilter[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap border
-                ${activeTab === tab 
-                  ? "bg-blue-600 text-white border-blue-600 shadow-md" 
-                  : "bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
-                }`}
+        <div className="bg-white border-b border-slate-200 p-4 shrink-0 flex items-center justify-between shadow-sm z-10">
+          <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+            {(["All", "To Cook", "Preparing", "Completed"] as TabFilter[]).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-200 whitespace-nowrap border
+                  ${activeTab === tab 
+                    ? "bg-blue-600 text-white border-blue-600 shadow-md" 
+                    : "bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
+                  }`}
+              >
+                {tab}
+                <Badge variant="secondary" className={`border-none ${activeTab === tab ? "bg-white/20 text-white hover:bg-white/30" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                  {stageCounts[tab]}
+                </Badge>
+              </button>
+            ))}
+          </div>
+          
+          {activeTab === "Completed" && stageCounts["Completed"] > 0 && (
+            <Button 
+              variant="outline"
+              onClick={clearCompletedOrders}
+              className="ml-4 shrink-0 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
             >
-              {tab}
-              <Badge variant="secondary" className={`border-none ${activeTab === tab ? "bg-white/20 text-white hover:bg-white/30" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
-                {stageCounts[tab]}
-              </Badge>
-            </button>
-          ))}
+              Clear View
+            </Button>
+          )}
         </div>
 
         {/* Tickets Grid */}
@@ -214,7 +226,9 @@ export default function KitchenDisplayPage() {
                   {/* Card Body / Items */}
                   <div className="p-3 flex-1 bg-slate-50/30">
                     <ul className="space-y-2">
-                      {order.items.map(item => (
+                      {order.items.map(item => {
+                        const isItemPrepared = item.prepared || order.stage === "Completed";
+                        return (
                         <li 
                           key={item.id}
                           onClick={() => {
@@ -223,15 +237,15 @@ export default function KitchenDisplayPage() {
                             }
                           }}
                           className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all duration-300
-                            ${item.prepared 
+                            ${isItemPrepared 
                               ? "bg-slate-100/50 text-slate-400 border-dashed border-slate-200" 
                               : "bg-white text-slate-800 border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md"
                             }
                           `}
                         >
-                          <div className={`flex items-center gap-3 text-lg font-bold ${item.prepared ? "line-through decoration-slate-400 decoration-2" : "text-slate-900"}`}>
+                          <div className={`flex items-center gap-3 text-lg font-bold ${isItemPrepared ? "line-through decoration-slate-400 decoration-2" : "text-slate-900"}`}>
                             <span className={`w-8 h-8 rounded flex items-center justify-center text-sm font-bold border transition-colors
-                              ${item.prepared ? "bg-slate-100 border-slate-200 text-slate-400" : "bg-blue-50 border-blue-200 text-blue-700"}
+                              ${isItemPrepared ? "bg-slate-100 border-slate-200 text-slate-400" : "bg-blue-50 border-blue-200 text-blue-700"}
                             `}>
                               {item.quantity}x
                             </span>
@@ -240,9 +254,9 @@ export default function KitchenDisplayPage() {
                               {item.notes && <span className="text-sm text-orange-600 mt-0.5 font-medium bg-orange-50 px-2 py-0.5 rounded w-fit border border-orange-200">Instruction: {item.notes}</span>}
                             </div>
                           </div>
-                          {item.prepared && <Check className="w-6 h-6 text-emerald-500 mr-2 shrink-0" />}
+                          {isItemPrepared && <Check className="w-6 h-6 text-emerald-500 mr-2 shrink-0" />}
                         </li>
-                      ))}
+                      )})}
                     </ul>
                   </div>
 

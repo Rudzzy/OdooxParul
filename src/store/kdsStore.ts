@@ -34,6 +34,7 @@ interface KDSState {
   }) => Promise<void>;
   toggleItemPrepared: (orderId: string, itemId: string) => Promise<void>;
   advanceOrderStage: (orderId: string) => Promise<void>;
+  clearCompletedOrders: () => Promise<void>;
 }
 
 export const useKdsStore = create<KDSState>((set, get) => ({
@@ -124,6 +125,21 @@ export const useKdsStore = create<KDSState>((set, get) => ({
       }));
     } catch (err) {
       console.error("Failed to advance stage:", err);
+      // Revert on failure
+      get().fetchOrders();
+    }
+  },
+
+  clearCompletedOrders: async () => {
+    // Optimistic update
+    set((state) => ({
+      orders: state.orders.filter((o) => o.stage !== "Completed"),
+    }));
+
+    try {
+      await api.delete("/kds/bulk/completed");
+    } catch (err) {
+      console.error("Failed to clear completed orders:", err);
       // Revert on failure
       get().fetchOrders();
     }
