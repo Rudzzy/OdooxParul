@@ -9,7 +9,7 @@ from app.routers.resources import (
     floors_router, tables_router,
     bookings_router, payments_router,
     coupons_router, promotions_router,
-    orders_router, customers_router,
+    orders_router, customers_router, users_router,
 )
 from app.routers.kds import router as kds_router
 
@@ -42,6 +42,7 @@ app.include_router(coupons_router)
 app.include_router(promotions_router)
 app.include_router(orders_router)
 app.include_router(customers_router)
+app.include_router(users_router)
 app.include_router(kds_router)
 
 

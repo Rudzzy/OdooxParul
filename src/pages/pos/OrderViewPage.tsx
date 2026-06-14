@@ -11,10 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { useFloorStore } from "@/store/floorStore";
 import { useProductStore } from "@/store/productStore";
 import { useKdsStore } from "@/store/kdsStore";
+import { usePromotionStore } from "@/store/promotionStore";
 import api from "@/lib/api";
 import { usePosStore, OrderItem } from "@/store/posStore";
-
-
+import { toast } from "sonner";
 
 interface MenuItem {
   id: string;
@@ -125,6 +125,8 @@ export default function OrderViewPage() {
 
   const [orderId, setOrderId] = useState<string | null>(null);
 
+  const [isLoadingOrder, setIsLoadingOrder] = useState(true);
+
   useEffect(() => {
     const fetchExistingOrder = async () => {
       try {
@@ -164,10 +166,14 @@ export default function OrderViewPage() {
         }
       } catch (err) {
         console.error("Failed to fetch existing order:", err);
+      } finally {
+        setIsLoadingOrder(false);
       }
     };
     if (tableId) {
       fetchExistingOrder();
+    } else {
+      setIsLoadingOrder(false);
     }
   }, [tableId]); // Note: session.orderItems.length intentionally omitted from deps to prevent loop
 
@@ -200,9 +206,37 @@ export default function OrderViewPage() {
     };
     fetchCustomers();
   }, []);
+  const { coupons, fetchCoupons } = usePromotionStore();
+
+  useEffect(() => {
+    fetchCoupons();
+  }, []);
+
   const [isCouponOpen, setIsCouponOpen] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   
+  const handleApplyCoupon = () => {
+    const coupon = coupons.find(c => c.code.toLowerCase() === couponCode.toLowerCase() && c.isActive);
+    if (!coupon) {
+      toast.error("Invalid or inactive coupon code");
+      return;
+    }
+    if (coupon.conditionType === "min_amount" && subtotal < (coupon.conditionValue || 0)) {
+      toast.error(`Minimum amount of ₹${coupon.conditionValue} required to apply this coupon`);
+      return;
+    }
+    
+    updateSession(tableId || "", { appliedCoupon: coupon });
+    setIsCouponOpen(false);
+    setCouponCode("");
+    toast.success(`Coupon ${coupon.code} applied successfully!`);
+  };
+
+  const handleRemoveCoupon = () => {
+    updateSession(tableId || "", { appliedCoupon: null });
+    toast.info("Coupon removed");
+  };
+
   const [isSendOpen, setIsSendOpen] = useState(false);
   const [emailReceipt, setEmailReceipt] = useState("");
   
@@ -220,10 +254,10 @@ export default function OrderViewPage() {
 
   // Customer Prompt on empty table
   useEffect(() => {
-    if (tableId && !session.customer && orderItems.length === 0) {
+    if (!isLoadingOrder && tableId && !session.customer && session.orderItems.length === 0) {
       setIsCustomerOpen(true);
     }
-  }, [tableId]);
+  }, [tableId, isLoadingOrder, session.customer, session.orderItems.length]);
 
 
 
@@ -244,7 +278,16 @@ export default function OrderViewPage() {
   // Totals
   const subtotal = orderItems.reduce((acc, item) => acc + (item.menuItem.price * item.quantity), 0);
   const tax = subtotal * 0.05; // 5% GST
-  const discount = 0;
+  
+  let discount = 0;
+  if (session.appliedCoupon) {
+    if (session.appliedCoupon.discountType === "percentage") {
+      discount = subtotal * (session.appliedCoupon.discountValue / 100);
+    } else {
+      discount = session.appliedCoupon.discountValue;
+    }
+  }
+  
   const grandTotal = subtotal + tax - discount;
 
   // Cart Functions
@@ -611,6 +654,15 @@ export default function OrderViewPage() {
                   <span>Tax (GST 5%)</span>
                   <span className="text-slate-900 font-semibold">₹{tax.toFixed(0)}</span>
                 </div>
+                {session.appliedCoupon && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-1">
+                      Discount ({session.appliedCoupon.code})
+                      <X className="h-3.5 w-3.5 cursor-pointer hover:bg-green-100 rounded-full" onClick={handleRemoveCoupon} />
+                    </span>
+                    <span className="font-semibold">-₹{discount.toFixed(0)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="bg-slate-50 border-t border-slate-200 px-5 py-4">
@@ -734,17 +786,15 @@ export default function OrderViewPage() {
               </div>
 
               {/* POS Number Pad */}
-              <div className="grid grid-cols-4 gap-2 mb-6">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(num => (
+              <div className="grid grid-cols-3 gap-2 mb-6">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <Button key={num} variant="outline" className="h-12 bg-white border-slate-200 text-slate-800 text-lg font-bold hover:bg-slate-50 hover:text-slate-900 shadow-sm" onClick={() => handleNumpad(num.toString())}>
                     {num}
                   </Button>
                 ))}
-                <Button variant="outline" className="h-12 bg-white border-slate-200 text-slate-800 hover:bg-slate-50 hover:text-slate-900 shadow-sm col-span-2 font-bold" onClick={() => handleNumpad("CLEAR")}>CLEAR</Button>
                 <Button variant="outline" className="h-12 bg-white border-slate-200 text-slate-800 hover:bg-slate-50 hover:text-slate-900 shadow-sm font-bold text-lg" onClick={() => handleNumpad("BACK")}>⌫</Button>
-                <Button variant="outline" className="h-12 bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-sm font-semibold text-xs">DISC %</Button>
-                <Button variant="outline" className="h-12 bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-sm font-semibold text-xs">QTY</Button>
-                <Button variant="outline" className="h-12 bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 shadow-sm font-semibold text-xs">PRICE</Button>
+                <Button variant="outline" className="h-12 bg-white border-slate-200 text-slate-800 text-lg font-bold hover:bg-slate-50 hover:text-slate-900 shadow-sm" onClick={() => handleNumpad("0")}>0</Button>
+                <Button variant="outline" className="h-12 bg-white border-slate-200 text-slate-800 hover:bg-slate-50 hover:text-slate-900 shadow-sm font-bold" onClick={() => handleNumpad("CLEAR")}>CLEAR</Button>
               </div>
 
               {/* Complete Payment Button */}
@@ -826,9 +876,7 @@ export default function OrderViewPage() {
               />
               <Button 
                 className="bg-blue-600 hover:bg-blue-700 text-white" 
-                onClick={() => {
-                  setIsCouponOpen(false);
-                }}
+                onClick={handleApplyCoupon}
               >
                 Apply
               </Button>

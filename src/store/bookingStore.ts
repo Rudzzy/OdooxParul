@@ -26,8 +26,12 @@ interface BookingState {
 export const useBookingStore = create<BookingState>((set) => ({
   bookings: [],
   fetchBookings: async () => {
-    const res = await api.get("/bookings");
-    set({ bookings: res.data });
+    try {
+      const res = await api.get("/bookings");
+      set({ bookings: res.data });
+    } catch (error) {
+      console.error("Failed to fetch bookings:", error);
+    }
   },
   addBooking: async (booking) => {
     const res = await api.post("/bookings", booking);

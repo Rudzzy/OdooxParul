@@ -41,6 +41,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(SAEnum(UserRole), default=UserRole.staff)
     pin = Column(String, nullable=True, index=True)  # 4-digit PIN for waiter login
+    status = Column(String, default="Active")
 
 
 # ─── Inventory ───────────────────────────────────────────────────────────────
@@ -204,6 +205,9 @@ class Order(Base):
     tax = Column(Float, default=0.0)
     total = Column(Float, default=0.0)
     timestamp = Column(String, default=lambda: datetime.now().isoformat())
+    session = Column(String, nullable=True)
+    pos = Column(String, nullable=True)
+    employee = Column(String, nullable=True)
 
 
 # ─── KDS (Kitchen Display System) ────────────────────────────────────────────
