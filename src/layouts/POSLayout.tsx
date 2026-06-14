@@ -13,9 +13,11 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/authStore";
 
 export default function POSLayout() {
   const location = useLocation();
+  const userName = useAuthStore((state) => state.userName);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -59,15 +61,11 @@ export default function POSLayout() {
             </div>
             <div className="flex items-center gap-2 ml-2 bg-slate-100 px-3 py-1.5 rounded-full">
               <User className="h-4 w-4 text-slate-500" />
-              <span className="text-sm font-medium text-slate-700">John Waiter</span>
+              <span className="text-sm font-medium text-slate-700">{userName || "Waiter"}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-slate-700">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500"></span>
-            </Button>
             <Button variant="ghost" size="icon" className="text-green-500 hover:text-green-600">
               <Wifi className="h-5 w-5" />
             </Button>
@@ -102,8 +100,17 @@ export default function POSLayout() {
             })}
           </nav>
           
-          <div className="p-4 border-t text-xs text-center text-slate-400 hidden md:block">
-            Waiter POS Terminal v1.0
+          <div className="p-4 border-t flex flex-col gap-3">
+            <Link 
+              to="/admin/products" 
+              className="flex items-center justify-center gap-2 w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-sm font-medium transition-colors"
+            >
+              <Settings className="w-4 h-4 md:w-4 md:h-4" />
+              <span className="hidden md:inline">Admin Portal</span>
+            </Link>
+            <div className="text-xs text-center text-slate-400 hidden md:block">
+              Waiter POS Terminal v1.0
+            </div>
           </div>
         </aside>
 

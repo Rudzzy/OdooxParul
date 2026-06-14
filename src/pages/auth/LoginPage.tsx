@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "../../store/authStore";
@@ -12,6 +12,8 @@ import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "admin" ? "admin" : "waiter";
   const login = useAuthStore((state) => state.login);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +62,7 @@ export default function LoginPage() {
         throw new Error("Invalid credentials");
       }
       const data = await res.json();
-      login(data.token, data.user.role === "admin" ? "admin" : "waiter");
+      login(data.token, data.user.role === "admin" ? "admin" : "waiter", data.user.name);
       navigate("/admin/products");
     } catch {
       toast.error("Invalid credentials");
@@ -93,7 +95,7 @@ export default function LoginPage() {
         throw new Error("Invalid PIN");
       }
       const data = await res.json();
-      login(data.token, "waiter");
+      login(data.token, "waiter", data.user.name);
       navigate("/pos/floor");
     } catch {
       toast.error("Invalid PIN");
@@ -154,7 +156,7 @@ export default function LoginPage() {
           <p className="text-sm text-gray-500 mt-2">Sign in to your account</p>
         </div>
 
-        <Tabs defaultValue="waiter" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6 h-12 rounded-xl bg-[#FDFBF7] p-1 border border-amber-900/5">
             <TabsTrigger value="waiter" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-amber-900 data-[state=active]:shadow-sm">Waiter</TabsTrigger>
             <TabsTrigger value="admin" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-amber-900 data-[state=active]:shadow-sm">Admin</TabsTrigger>

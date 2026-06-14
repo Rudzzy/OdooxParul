@@ -85,10 +85,19 @@ export const useKdsStore = create<KDSState>((set, get) => ({
 
     try {
       const res = await api.patch(`/kds/${orderId}/items/${itemId}/toggle`);
+      const updatedOrder = res.data;
       // Sync with server response
       set((state) => ({
-        orders: state.orders.map((o) => (o.id === orderId ? res.data : o)),
+        orders: state.orders.map((o) => (o.id === orderId ? updatedOrder : o)),
       }));
+
+      // Auto-advance if all items are prepared and we are in Preparing stage
+      if (updatedOrder.stage === "Preparing") {
+        const allPrepared = updatedOrder.items.every((i: any) => i.prepared);
+        if (allPrepared) {
+          get().advanceOrderStage(orderId);
+        }
+      }
     } catch (err) {
       console.error("Failed to toggle item:", err);
       // Revert on failure

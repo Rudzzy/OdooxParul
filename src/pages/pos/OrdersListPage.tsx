@@ -16,7 +16,17 @@ interface Order {
   totalValue: number;
   createdTime: string;
   status: OrderStatus;
+  kdsStage?: string;
 }
+
+const getKdsColor = (stage: string) => {
+  switch (stage) {
+    case "To Cook": return "bg-orange-50 text-orange-700 border-orange-200";
+    case "Preparing": return "bg-blue-50 text-blue-700 border-blue-200";
+    case "Completed": return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    default: return "bg-slate-50 text-slate-700 border-slate-200";
+  }
+};
 
 const getStatusColor = (status: OrderStatus) => {
   switch (status) {
@@ -50,6 +60,11 @@ export default function OrdersListPage() {
           tablesMap[t.id] = t.tableNumber;
         });
 
+        const kdsMap: Record<string, string> = {};
+        kdsRes.data.forEach((k: any) => {
+          if (k.orderId) kdsMap[k.orderId] = k.stage;
+        });
+
         const backendOrders: Order[] = ordersRes.data
           .map((o: any, index: number) => ({
           id: o.id,
@@ -58,6 +73,7 @@ export default function OrdersListPage() {
           totalValue: o.total || 0,
           createdTime: o.timestamp ? new Date(o.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "--",
           status: (o.status || "open") as OrderStatus,
+          kdsStage: kdsMap[o.id],
         }));
         setOrders(backendOrders);
       } catch {
@@ -135,9 +151,16 @@ export default function OrdersListPage() {
                     <span className="text-2xl font-bold tracking-tight">Table {order.tableNumber}</span>
                   </div>
                 </div>
-                <Badge variant="secondary" className={`font-semibold ${getStatusColor(order.status)}`}>
-                  {order.status}
-                </Badge>
+                <div className="flex flex-col items-end gap-2">
+                  <Badge variant="secondary" className={`font-semibold ${getStatusColor(order.status)}`}>
+                    {order.status}
+                  </Badge>
+                  {order.kdsStage && (
+                    <Badge variant="outline" className={`text-xs font-semibold ${getKdsColor(order.kdsStage)}`}>
+                      Kitchen: {order.kdsStage}
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">

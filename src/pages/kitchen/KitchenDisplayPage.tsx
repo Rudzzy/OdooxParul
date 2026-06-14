@@ -217,7 +217,11 @@ export default function KitchenDisplayPage() {
                       {order.items.map(item => (
                         <li 
                           key={item.id}
-                          onClick={() => toggleItemPrepared(order.id, item.id)}
+                          onClick={() => {
+                            if (order.stage === "Preparing") {
+                              toggleItemPrepared(order.id, item.id);
+                            }
+                          }}
                           className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all duration-300
                             ${item.prepared 
                               ? "bg-slate-100/50 text-slate-400 border-dashed border-slate-200" 
