@@ -150,7 +150,7 @@ export default function LoginPage() {
           >
             <span className="text-2xl text-amber-800 font-bold">☕</span>
           </motion.div>
-          <h1 className="text-2xl font-bold tracking-tight text-amber-950">Odoo Cafe POS</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-amber-950">Odoo Dineflow</h1>
           <p className="text-sm text-gray-500 mt-2">Sign in to your account</p>
         </div>
 

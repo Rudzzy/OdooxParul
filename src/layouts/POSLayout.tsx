@@ -37,10 +37,10 @@ export default function POSLayout() {
         <div className="flex items-center gap-4">
           <HamburgerMenu />
           <div className="flex items-center gap-2 ml-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 text-white font-bold text-xl">
-              O
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-600 text-white font-bold">
+              <UtensilsCrossed className="h-6 w-6" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-slate-800 hidden sm:block">OdooX</span>
+            <span className="text-xl font-bold tracking-tight text-slate-800 hidden sm:block">Odoo Dineflow</span>
           </div>
         </div>
 

@@ -14,6 +14,7 @@ import { useKdsStore } from "@/store/kdsStore";
 import { usePromotionStore } from "@/store/promotionStore";
 import api from "@/lib/api";
 import { usePosStore, OrderItem } from "@/store/posStore";
+import { usePaymentStore } from "@/store/paymentStore";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -160,6 +161,24 @@ export default function OrderViewPage() {
                   phone: existing.customerPhone || ""
                 };
               }
+
+              // Apply backend discount if any
+              const backendSubtotal = mappedItems.reduce((acc: number, item: any) => acc + item.menuItem.price * item.quantity, 0);
+              const backendTax = backendSubtotal * 0.05;
+              const backendTotal = existing.total || (backendSubtotal + backendTax);
+              const diff = (backendSubtotal + backendTax) - backendTotal;
+
+              if (diff > 0) {
+                updates.appliedCoupon = {
+                  id: "legacy",
+                  code: "IMPORTED_DISCOUNT",
+                  discountType: "fixed",
+                  discountValue: diff,
+                  isActive: true,
+                  conditionType: "none",
+                };
+              }
+
               updateSession(tableId || "", updates);
             }
           }
@@ -207,9 +226,11 @@ export default function OrderViewPage() {
     fetchCustomers();
   }, []);
   const { coupons, fetchCoupons } = usePromotionStore();
+  const { paymentMethods, fetchPaymentMethods } = usePaymentStore();
 
   useEffect(() => {
     fetchCoupons();
+    fetchPaymentMethods();
   }, []);
 
   const [isCouponOpen, setIsCouponOpen] = useState(false);
@@ -748,25 +769,36 @@ export default function OrderViewPage() {
                   </div>
                 )}
 
-                {paymentMethod === "UPI" && (
-                  <div className="text-center">
-                    <div className="bg-white p-3 border border-slate-200 rounded-xl mb-4 mx-auto w-fit shadow-sm">
-                      <div className="grid grid-cols-5 gap-1.5 w-28 h-28">
-                        {Array.from({length: 25}).map((_, i) => (
-                          <div key={i} className={`bg-slate-800 rounded-sm ${Math.random() > 0.5 ? 'opacity-100' : 'opacity-20'}`} />
-                        ))}
+                {paymentMethod === "UPI" && (() => {
+                  const activeUpiMethod = paymentMethods.find(m => m.type === "UPI" && m.isActive);
+                  const upiId = activeUpiMethod?.upiId || "merchant@upi";
+
+                  return (
+                    <div className="text-center w-full max-w-sm mx-auto flex flex-col items-center justify-center">
+                      <div className="border border-blue-200 rounded-xl p-2.5 bg-blue-50 shadow-sm mb-2 mx-auto w-fit">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <p className="text-[10px] text-blue-600 font-bold tracking-widest uppercase mb-1">UPI QR</p>
+                          <div className="bg-white p-1.5 rounded-lg shadow-sm border border-blue-100">
+                            <img 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=upi://pay?pa=${upiId}&pn=Odoo%20Dineflow&am=${grandTotal.toFixed(2)}&cu=INR&margin=0`}
+                              alt="UPI QR Code"
+                              className="w-[100px] h-[100px] object-contain"
+                            />
+                          </div>
+                          <p className="text-[11px] font-bold tracking-widest text-slate-700 mt-1 uppercase">Scan to Pay</p>
+                        </div>
                       </div>
+                      {isProcessing ? (
+                        <div className="flex flex-col items-center gap-1">
+                          <Loader2 className="h-3 w-3 animate-spin text-blue-600" />
+                          <div className="text-blue-700 font-semibold text-[11px]">Waiting...</div>
+                        </div>
+                      ) : (
+                        <div className="text-slate-500 font-medium text-[11px]">Scan QR to pay</div>
+                      )}
                     </div>
-                    {isProcessing ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                        <div className="text-blue-700 font-semibold">Waiting for Payment...</div>
-                      </div>
-                    ) : (
-                      <div className="text-slate-500 font-medium">Scan QR code to pay</div>
-                    )}
-                  </div>
-                )}
+                  );
+                })()}
 
                 {paymentMethod === "CARD" && (
                   <div className="text-center">

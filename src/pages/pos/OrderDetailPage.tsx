@@ -49,8 +49,11 @@ export default function OrderDetailPage() {
           price: item.price || 0,
           status: item.status || "Served",
         }));
-        const subtotal = items.reduce((acc: number, item: any) => acc + item.price * item.quantity, 0);
-        const tax = subtotal * 0.05;
+        const subtotal = o.subtotal || items.reduce((acc: number, item: any) => acc + item.price * item.quantity, 0);
+        const tax = o.tax || subtotal * 0.05;
+        const total = o.total || (subtotal + tax);
+        const calculatedDiscount = (subtotal + tax) - total;
+
         setOrder({
           id: o.id,
           orderNumber: `ORD-${o.id?.substring(0, 4)?.toUpperCase() || "0000"}`,
@@ -61,8 +64,8 @@ export default function OrderDetailPage() {
           items,
           subtotal,
           tax,
-          discount: o.discount || 0,
-          total: subtotal + tax - (o.discount || 0),
+          discount: o.discount || (calculatedDiscount > 0 ? calculatedDiscount : 0),
+          total: total,
         });
       } catch {
         // If order not found, show fallback

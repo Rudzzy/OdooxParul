@@ -79,7 +79,7 @@ export default function LandingPage() {
           >
             <Coffee size={28} strokeWidth={2.5} />
           </motion.div>
-          <span className="text-2xl font-black tracking-tight">Odoo Cafe POS</span>
+          <span className="text-2xl font-black tracking-tight">Odoo Dineflow</span>
         </motion.div>
 
         <motion.div
@@ -179,7 +179,7 @@ export default function LandingPage() {
       
       {/* Footer */}
       <footer className="py-8 text-center text-[#7A6650] font-medium opacity-80 mt-auto relative z-10">
-        <p>© 2026 Odoo Cafe POS. Built for high-performance hospitality.</p>
+        <p>© 2026 Odoo Dineflow. Built for high-performance hospitality.</p>
       </footer>
 
       {/* Background ambient shapes */}

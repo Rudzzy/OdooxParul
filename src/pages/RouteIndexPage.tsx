@@ -85,7 +85,7 @@ export default function RouteIndexPage() {
               letterSpacing: "-0.5px",
             }}
           >
-            Odoo Cafe POS
+            Odoo Dineflow
           </h1>
           <p
             style={{
@@ -264,7 +264,7 @@ export default function RouteIndexPage() {
         {/* Footer */}
         <div style={{ textAlign: "center", marginTop: 48, color: "#7A6650", fontSize: 13 }}>
           <p style={{ margin: 0 }}>
-            ☕ Odoo Cafe POS · Frontend Guide v2.0 · Waiter-Centric Workflow
+            ☕ Odoo Dineflow · Frontend Guide v2.0 · Waiter-Centric Workflow
           </p>
         </div>
       </div>
